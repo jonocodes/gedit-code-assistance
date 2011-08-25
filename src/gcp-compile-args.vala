@@ -183,7 +183,7 @@ namespace Gcp
 		                                                             ShellError
 		{
 			/* Fake make to build the target and extract the flags */
-			string relsource = makefile.get_relative_path(source);
+			string relsource = makefile.get_parent().get_relative_path(source);
 
 			string fakecc = "__GCP_COMPILE_ARGS__";
 
