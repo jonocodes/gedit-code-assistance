@@ -14,7 +14,7 @@ libgcp_la_SOURCES = $(SOURCES)
 libgcp_la_CFLAGS = $(GCP_CFLAGS)
 libgcp_la_LDFLAGS = -module -shared -avoid-version $(GCP_LIBS)
 
-VALAFLAGS = --pkg gio-2.0 --pkg gee-1.0
+VALAFLAGS = --vapidir $(top_srcdir)/vapi --pkg gio-2.0 --pkg gee-1.0 --pkg clang
 
 CLEANFILES = libgcp_la_vala.stamp
 
