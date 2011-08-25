@@ -36,10 +36,10 @@ namespace Gcp
 			return ret;
 		}
 
-		private static File ?TargetFromMake(File makefile,
-		                                    File source) throws SpawnError,
-		                                                        RegexError,
-		                                                        CompileArgsError
+		private static string TargetFromMake(File makefile,
+		                                     File source) throws SpawnError,
+		                                                         RegexError,
+		                                                         CompileArgsError
 		{
 			File wd = source.get_parent();
 			string basen = source.get_basename();
@@ -75,21 +75,47 @@ namespace Gcp
 			                   out outstr);
 
 			/* Scan the output to find the target */
-			string reg = "^(%s\\.(o|lo)):.*%s".printf(Regex.escape_string(noext),
-			                                          Regex.escape_string(basen));
+			string prefreg = "^([^:]*(%s\\.(o|lo)))$".printf(Regex.escape_string(noext));
+			string preflessreg = "^[a-z]+$";
 
-			Regex regex = new Regex(reg);
+			string reg = "^([^:\n]*):.*%s".printf(Regex.escape_string(basen));
+
+			Regex regex = new Regex(reg, RegexCompileFlags.MULTILINE);
 			MatchInfo info;
 
 			if (regex.match(outstr, 0, out info))
 			{
-				return wd.get_child(info.fetch(1));
+				Regex preg = new Regex(prefreg);
+				Regex lreg = new Regex(preflessreg);
+				string ?lastmatch = null;
+
+				while (true)
+				{
+					string target = info.fetch(1);
+
+					if (preg.match(target))
+					{
+						return target;
+					}
+					else if (lreg.match(target))
+					{
+						lastmatch = target;
+					}
+
+					if (!info.next())
+					{
+						break;
+					}
+				}
+
+				if (lastmatch != null)
+				{
+					return lastmatch;
+				}
 			}
-			else
-			{
-				throw new CompileArgsError.MISSING_TARGET(
-					"Could not find make target for %s".printf(basen));
-			}
+
+			throw new CompileArgsError.MISSING_TARGET(
+				"Could not find make target for %s".printf(basen));
 		}
 
 		private static string[] FilterFlags(string[] args)
@@ -150,15 +176,14 @@ namespace Gcp
 			return ret.to_array();
 		}
 
-		private static string[] ?FlagsFromTarget(File makefile,
-		                                         File source,
-		                                         File target) throws SpawnError,
+		private static string[] ?FlagsFromTarget(File   makefile,
+		                                         File   source,
+		                                         string target) throws SpawnError,
 		                                                             CompileArgsError,
 		                                                             ShellError
 		{
 			/* Fake make to build the target and extract the flags */
 			string relsource = makefile.get_relative_path(source);
-			string reltarget = makefile.get_relative_path(target);
 
 			string fakecc = "__GCP_COMPILE_ARGS__";
 
@@ -172,7 +197,7 @@ namespace Gcp
 				"V=1",
 				"CC=" + fakecc,
 				"CXX=" + fakecc,
-				reltarget,
+				target,
 				null
 			};
 
@@ -216,13 +241,7 @@ namespace Gcp
 					"Makefile could not be found");
 			}
 
-			File ?target = TargetFromMake(makefile, file);
-
-			if (target == null)
-			{
-				return null;
-			}
-
+			string target = TargetFromMake(makefile, file);
 			return FlagsFromTarget(makefile, file, target);
 		}
 	}
