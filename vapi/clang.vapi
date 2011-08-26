@@ -38,6 +38,10 @@ namespace CX
 		public static ParseFlags default();
 	}
 
+	public delegate void InclusionVisitorCallback(File file,
+	                                              [CCode (array_length_pos = 2.9)]
+	                                              SourceLocation[] inclusion_stack);
+
 	[Compact]
 	[CCode (free_function = "clang_disposeTranslationUnit", cname = "CXTranslationUnit", cprefix = "clang_")]
 	public class TranslationUnit
@@ -176,6 +180,16 @@ namespace CX
 			_annotate_tokens(tokens, ref cursors);
 			return cursors;
 		}
+
+		public CodeCompleteResults code_complete_at(string filename,
+		                                            uint complete_line,
+		                                            uint complete_column,
+		                                            [CCode (array_length_pos = 4.9)]
+		                                            UnsavedFile[] ?unsaved_files,
+		                                            CodeCompleteFlags options);
+
+		[CCode (cname = "clang_getInclusions")]
+		public void get_inclusions(InclusionVisitorCallback callback);
 	}
 
 	[CCode (cname = "CXUnsavedFile")]
@@ -575,7 +589,7 @@ namespace CX
 		public String spelling();
 	}
 
-	public delegate void VisitorCallback(Cursor cursor, Cursor parent);
+	public delegate void ChildrenVisitorCallback(Cursor cursor, Cursor parent);
 
 	[CCode (cname = "CXCursor")]
 	public struct Cursor
@@ -776,7 +790,7 @@ namespace CX
 		}
 
 		[CCode (cname = "clang_visitChildren")]
-		public bool visit_children(VisitorCallback callback);
+		public bool visit_children(ChildrenVisitorCallback callback);
 	}
 
 	[Compact]
@@ -1134,5 +1148,143 @@ namespace CX
 			[CCode (cname = "clang_getTokenKind")]
 			get;
 		}
+	}
+
+	[CCode (cname = "CXCompletionChunkKind")]
+	public enum CompletionChunkKind
+	{
+		[CCode (cname = "CXCompletionChunk_Optional")]
+		OPTIONAL,
+
+		[CCode (cname = "CXCompletionChunk_TypedText")]
+		TYPED_TEXT,
+
+		[CCode (cname = "CXCompletionChunk_Text")]
+		TEXT,
+
+		[CCode (cname = "CXCompletionChunk_Placeholder")]
+		PLACEHOLDER,
+
+		[CCode (cname = "CXCompletionChunk_Informative")]
+		INFORMATIVE,
+
+		[CCode (cname = "CXCompletionChunk_CurrentParameter")]
+		CURRENT_PARAMETER,
+
+		[CCode (cname = "CXCompletionChunk_LeftParen")]
+		LEFT_PAREN,
+
+		[CCode (cname = "CXCompletionChunk_RightParen")]
+		RIGHT_PAREN,
+
+		[CCode (cname = "CXCompletionChunk_LeftBracket")]
+		LEFT_BRACKET,
+
+		[CCode (cname = "CXCompletionChunk_RightBracket")]
+		RIGHT_BRACKET,
+
+		[CCode (cname = "CXCompletionChunk_LeftBrace")]
+		LEFT_BRACE,
+
+		[CCode (cname = "CXCompletionChunk_RightBrace")]
+		RIGHT_BRACE,
+
+		[CCode (cname = "CXCompletionChunk_LeftAngle")]
+		LEFT_ANGLE,
+
+		[CCode (cname = "CXCompletionChunk_RightAngle")]
+		RIGHT_ANGLE,
+
+		[CCode (cname = "CXCompletionChunk_Comma")]
+		COMMA,
+
+		[CCode (cname = "CXCompletionChunk_ResultType")]
+		RESULT_TYPE,
+
+		[CCode (cname = "CXCompletionChunk_Colon")]
+		COLON,
+
+		[CCode (cname = "CXCompletionChunk_SemiColon")]
+		SEMI_COLON,
+
+		[CCode (cname = "CXCompletionChunk_Equal")]
+		EQUAL,
+
+		[CCode (cname = "CXCompletionChunk_HorizontalSpace")]
+		HORIZONTAL_SPACE,
+
+		[CCode (cname = "CXCompletionChunk_VerticalSpace")]
+		VERTICAL_SPACE
+	}
+
+	[Flags]
+	[CCode (cname = "CXCodeComplete_Flags")]
+	public enum CodeCompleteFlags
+	{
+		[CCode (cname = "CXCodeComplete_IncludeMacros")]
+		INCLUDE_MACROS,
+
+		[CCode (cname = "CXCodeComplete_IncludeCodePatterns")]
+		INCLUDE_CODE_PATTERNS;
+
+		[CCode (cname = "clang_defaultCodeCompleteOptions")]
+		public static CodeCompleteFlags default();
+	}
+
+	[Compact, Immutable]
+	public class CompletionString
+	{
+		public AvailablilityKind availability
+		{
+			[CCode (cname = "clang_getCompletionAvailability")]
+			get;
+		}
+
+		public uint priority
+		{
+			[CCode (cname = "clang_getCompletionPriority")]
+			get;
+		}
+
+		public uint chunks
+		{
+			[CCode (cname = "clang_getCompletionChunkCompletionString")]
+			get;
+		}
+
+		[CCode (cname = "clang_getCompletionChunkCompletionString")]
+		public string completion_chunk_string(uint chunk_number);
+
+		[CCode (cname = "clang_getCompletionChunkText")]
+		public string completion_chunk_text(uint chunk_number);
+
+		[CCode (cname = "clang_getCompletionChunkText")]
+		public CompletionChunkKind completion_chunk_kind(uint chunk_number);
+	}
+
+	public struct CompletionResult
+	{
+		[CCode (cname = "CursorKind")]
+		public CursorKind cursor_kind;
+
+		[CCode (cname = "CompletionString")]
+		public CompletionString completion_string;
+	}
+
+	[Compact]
+	[CCode (cname = "CXCodeCompleteResults", free_function = "clang_disposeCodeCompleteResults")]
+	public class CodeCompleteResults
+	{
+		[CCode (cname = "Results", array_length_cname = "NumResults")]
+		CompletionResult[] results;
+
+		public uint num_diagnostics
+		{
+			[CCode (cname = "clang_codeCompleteGetNumDiagnostics")]
+			get;
+		}
+
+		[CCode (cname = "clang_codeCompleteGetDiagnostic")]
+		public Diagnostic get_diagnostic(uint idx);
 	}
 }
