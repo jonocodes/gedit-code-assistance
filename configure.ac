@@ -35,6 +35,7 @@ PKG_CHECK_MODULES(GCP, [
 	glib-2.0
 	gio-2.0
 	gee-1.0
+	gedit
 ])
 
 GCP_NETWORK_LIBS="${GCP_NETWORK_LIBS}"
