@@ -1288,3 +1288,5 @@ namespace CX
 		public Diagnostic get_diagnostic(uint idx);
 	}
 }
+
+/* vi:ex:ts=4 */
