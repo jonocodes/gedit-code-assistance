@@ -46,6 +46,10 @@ namespace Gcp.C
 				{
 					return d_args;
 				}
+				set
+				{
+					d_args = value;
+				}
 			}
 		}
 
@@ -104,6 +108,14 @@ namespace Gcp.C
 				}
 			}
 
+			public File file
+			{
+				get
+				{
+					return d_file;
+				}
+			}
+
 			private void on_makefile_changed(File file, File ?other, FileMonitorEvent event_type)
 			{
 				if (event_type == FileMonitorEvent.CHANGED ||
@@ -132,6 +144,8 @@ namespace Gcp.C
 		private HashMap<File, Cache> d_argsCache;
 		private HashMap<File, Makefile> d_makefileCache;
 
+		public signal void arguments_changed(File file);
+
 		construct
 		{
 			d_argsCache = new HashMap<File, Cache>(File.hash, (EqualFunc)File.equal);
@@ -139,7 +153,8 @@ namespace Gcp.C
 		}
 
 		private File ?MakefileFor(File file,
-		                          Cancellable ?cancellable) throws IOError, Error
+		                          Cancellable ?cancellable = null) throws IOError,
+		                          Error
 		{
 			File ?ret = null;
 
@@ -354,101 +369,181 @@ namespace Gcp.C
 			return FilterFlags(retargs);
 		}
 
-		public void remove_cache(File file)
+		private void on_makefile_changed(Makefile makefile)
 		{
-			if (d_argsCache.has_key(file))
+			ThreadFunc<void *> func = () => {
+				foreach (File file in makefile.sources)
+				{
+					find_for_makefile(makefile.file, file);
+				}
+			};
+
+			try
 			{
-				d_argsCache.unset(file);
+				Thread.create<void *>(func, false);
+			}
+			catch
+			{
 			}
 		}
 
-		public void remove(File file)
+		private void find_for_makefile(File makefile, File file)
 		{
-			if (!d_argsCache.has_key(file))
+			string target;
+
+			try
+			{
+				target = TargetFromMake(makefile, file);
+			}
+			catch
 			{
 				return;
 			}
 
-			File makefile = d_argsCache[file].makefile;
-
-			if (d_makefileCache.has_key(makefile))
-			{
-				if (d_makefileCache[makefile].remove(file))
-				{
-					d_makefileCache.unset(makefile);
-				}
-			}
-
-			d_argsCache.unset(file);
-		}
-
-		public string[] ?
-		guess(File file,
-		      Cancellable ?cancellable = null) throws IOError,
-		                                              RegexError,
-		                                              CompileArgsError,
-		                                              SpawnError,
-		                                              ShellError,
-		                                              Error
-		{
-			if (d_argsCache.has_key(file))
-			{
-				return d_argsCache[file].args;
-			}
-
-			File ?makefile = null;
+			string[] args = {};
 
 			try
 			{
-				makefile = MakefileFor(file, cancellable);
+				args = FlagsFromTarget(makefile, file, target);
 			}
-			catch (IOError.CANCELLED error)
+			catch
 			{
-				return null;
-			}
-
-			if (makefile == null)
-			{
-				throw new CompileArgsError.MISSING_MAKEFILE(
-					"Makefile could not be found");
 			}
 
-			string target = TargetFromMake(makefile, file);
-
-			if (cancellable != null && cancellable.is_cancelled())
+			lock(d_makefileCache)
 			{
-				return null;
-			}
-
-			string[] args = FlagsFromTarget(makefile, file, target);
-
-			if (cancellable != null && cancellable.is_cancelled())
-			{
-				return null;
-			}
-
-			if (args != null)
-			{
-				d_argsCache[file] = new Cache(file, makefile, args);
-
-				if (!d_makefileCache.has_key(makefile))
+				lock(d_argsCache)
 				{
-					Makefile m = new Makefile(makefile);
+					if (d_argsCache.has_key(file))
+					{
+						d_argsCache[file].args = args;
+					}
+					else
+					{
+						Cache c = new Cache(file, makefile, args);
+						d_argsCache[file] = c;
+					}
 
-					m.changed.connect((mm) => {
-						foreach (File source in mm.sources)
-						{
-							remove_cache(source);
-						}
-					});
+					if (!d_makefileCache.has_key(makefile))
+					{
+						Makefile m = new Makefile(makefile);
+						m.add(file);
 
-					d_makefileCache[makefile] = m;
+						m.changed.connect(on_makefile_changed);
+						d_makefileCache[makefile] = m;
+					}
+				}
+			}
+
+			Idle.add(() => {
+				arguments_changed(file);
+				return false;
+			});
+		}
+
+		private void find_async(File file)
+		{
+			ThreadFunc<void *> func = () => {
+				File ?makefile = null;
+
+				try
+				{
+					makefile = MakefileFor(file);
+				}
+				catch
+				{
+					return null;
 				}
 
-				d_makefileCache[makefile].add(file);
+				if (makefile == null)
+				{
+					return null;
+				}
+
+				find_for_makefile(makefile, file);
+
+				lock(d_makefileCache)
+				{
+					if (d_makefileCache.has_key(file))
+					{
+						d_makefileCache[makefile].add(file);
+					}
+				}
+
+				return null;
+			};
+
+			try
+			{
+				Thread.create<void *>(func, false);
+			}
+			catch
+			{
+			}
+		}
+
+		public new string[]? get(File file)
+		{
+			string[] ?ret = null;
+
+			lock(d_argsCache)
+			{
+				if (d_argsCache.has_key(file))
+				{
+					ret = d_argsCache[file].args;
+				}
+				else
+				{
+					monitor(file);
+				}
 			}
 
-			return args;
+			return ret;
+		}
+
+		public void monitor(File file)
+		{
+			bool hascache;
+
+			lock(d_argsCache)
+			{
+				hascache = d_argsCache.has_key(file);
+			}
+
+			if (hascache)
+			{
+				arguments_changed(file);
+			}
+			else
+			{
+				find_async(file);
+			}
+		}
+
+		public void remove_monitor(File file)
+		{
+			lock(d_argsCache)
+			{
+				if (d_argsCache.has_key(file))
+				{
+					Cache c = d_argsCache[file];
+
+					lock (d_makefileCache)
+					{
+						if (d_makefileCache.has_key(c.makefile))
+						{
+							Makefile m = d_makefileCache[c.makefile];
+
+							if (m.remove(file))
+							{
+								d_makefileCache.unset(c.makefile);
+							}
+						}
+					}
+
+					d_argsCache.unset(file);
+				}
+			}
 		}
 	}
 }

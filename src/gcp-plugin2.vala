@@ -11,7 +11,7 @@ class Plugin : Gedit.Plugin
 	{
 		GLib.Object();
 
-		d_helpers = new HashMap<Gedit.Window, WindowHelper>();
+		d_helpers = new HashMap<Gedit.Window, WindowHelper>(direct_hash, direct_equal);
 	}
 
 	public override void activate(Gedit.Window window)

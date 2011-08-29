@@ -1,7 +1,7 @@
 namespace Gcp
 {
 
-class SymbolBrowser : Object
+class SymbolBrowser : Gtk.TreeStore
 {
 
 }

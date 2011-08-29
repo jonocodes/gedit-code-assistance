@@ -182,7 +182,8 @@ namespace CX
 		public void get_inclusions(InclusionVisitorCallback callback);
 	}
 
-	[CCode (cname = "CXUnsavedFile")]
+	[SimpleType]
+	[CCode (cname = "struct CXUnsavedFile")]
 	public struct UnsavedFile
 	{
 		public unowned string filename;
@@ -581,6 +582,7 @@ namespace CX
 
 	public delegate void ChildrenVisitorCallback(Cursor cursor, Cursor parent);
 
+	[SimpleType]
 	[CCode (cname = "CXCursor")]
 	public struct Cursor
 	{

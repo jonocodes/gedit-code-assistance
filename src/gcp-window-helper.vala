@@ -12,7 +12,7 @@ class WindowHelper
 	{
 		d_window = window;
 
-		d_views = new HashMap<Gedit.View, Gcp.View>();
+		d_views = new HashMap<Gedit.View, Gcp.View>(direct_hash, direct_equal);
 
 		d_window.tab_added.connect(on_tab_added);
 		d_window.tab_removed.connect(on_tab_removed);

@@ -1,62 +1,50 @@
 namespace Gcp.C
 {
 
-class Document : Gcp.Document
+class Document : Gcp.Document, SymbolBrowserSupport
 {
-	private unowned Backend d_backend;
-	private CX.TranslationUnit d_tu;
-	private File d_location;
+	private TranslationUnit d_tu;
+	private SymbolBrowser d_symbols;
 
-	public Document(Backend backend, Gedit.Document document)
+	public Document(Gedit.Document document)
 	{
 		base(document);
 
-		d_backend = backend;
+		d_tu = new TranslationUnit();
+		d_symbols = new SymbolBrowser();
 
-		create_tu();
+		d_tu.update.connect(on_tu_update);
 	}
 
-	private void create_tu()
+	public SymbolBrowser symbol_browser
 	{
-		if (document.is_untitled())
+		get
 		{
-			d_tu = null;
-			return;
-		}
-
-#if WITH_GEDIT3
-		File ?location = document.location;
-#else
-		File? location = File.new_for_uri(document.get_uri());
-#endif
-
-		if (location == null)
-		{
-			d_tu = null;
-			return;
-		}
-
-		if (!document.is_local())
-		{
-			d_tu = null;
-			return;
-		}
-
-		if (!location.equal(d_location))
-		{
-			d_backend.create_tu(location);
-			d_location = location;
+			return d_symbols;
 		}
 	}
 
-	protected override void on_document_saved()
+	public TranslationUnit translation_unit
 	{
-		create_tu();
+		get
+		{
+			return d_tu;
+		}
 	}
 
-	protected override void on_document_loaded()
+	private void visit_cursor(CX.Cursor cursor)
 	{
-		create_tu();
+		
+	}
+
+	private void on_tu_update()
+	{
+		/* Refill the symbol browser */
+		d_symbols.clear();
+
+		d_tu.with_translation_unit((tu) => {
+			visit_cursor(tu.cursor);
+		});
 	}
 }
 

@@ -16,7 +16,9 @@ SOURCES = \
 	gcp-symbol-browser-support.vala \
 	gcp-c-backend.vala \
 	gcp-c-document.vala \
-	gcp-c-compile-args.vala
+	gcp-c-compile-args.vala \
+	gcp-unsaved-file.vala \
+	gcp-c-translation-unit.vala
 
 if WITH_GEDIT2
 SOURCES += gcp-window-helper.vala gcp-plugin2.vala
