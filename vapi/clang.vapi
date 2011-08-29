@@ -1,8 +1,8 @@
-[CCode (lower_case_cprefix = "clang_", cheader_filename = "Index.h")]
+[CCode (lower_case_cprefix = "clang_", cheader_filename = "clang-c/Index.h")]
 namespace CX
 {
-	[Compact]
-	[CCode (free_function = "clang_disposeIndex", cname = "CXIndex", cprefix = "clang_")]
+	[Immutable, Compact]
+	[CCode (free_function = "clang_disposeIndex", cname = "void", cprefix = "clang_")]
 	public class Index
 	{
 		[CCode (cname = "clang_createIndex")]
@@ -10,7 +10,7 @@ namespace CX
 	}
 
 	[Flags]
-	[CCode (cname = "CXTranslationUnit_Flags")]
+	[CCode (cname = "enum CXTranslationUnit_Flags")]
 	public enum ParseFlags
 	{
 		[CCode (cname = "CXTranslationUnit_None")]
@@ -43,17 +43,17 @@ namespace CX
 	                                              SourceLocation[] inclusion_stack);
 
 	[Compact]
-	[CCode (free_function = "clang_disposeTranslationUnit", cname = "CXTranslationUnit", cprefix = "clang_")]
+	[CCode (free_function = "clang_disposeTranslationUnit", cname = "struct CXTranslationUnitImpl", cprefix = "clang_")]
 	public class TranslationUnit
 	{
-		[CCode (cname = "CXSaveTranslationUnit_Flags")]
+		[CCode (cname = "enum CXSaveTranslationUnit_Flags")]
 		public enum SaveFlags
 		{
 			[CCode (cname = "CXSaveTranslationUnit_None")]
 			None
 		}
 
-		[CCode (ccname = "CXReparse_Flags")]
+		[CCode (ccname = "enum CXReparse_Flags")]
 		public enum ReparseFlags
 		{
 			[CCode (cname = "CXReparse_None")]
@@ -70,21 +70,11 @@ namespace CX
 		[CCode (cname = "clang_createTranslationUnit")]
 		public static TranslationUnit create(Index idx, string ast_filename);
 
-		[CCode (cname = "clang_createTranslationUnit")]
-		public static TranslationUnit create_from_source_file(Index idx,
-		                                                      string ?source_filename = null,
-		                                                      [CCode(array_length_pos=2.9,
-		                                                             array_null_terminated = false)]
-		                                                      string[] ?command_line_args = null,
-		                                                      [CCode(array_length_pos=4.9,
-		                                                             array_null_terminated = false)]
-		                                                      UnsavedFile[] ?unsaved_files = null);
-
 		[CCode (cname = "clang_saveTranslationUnit")]
 		public int save(string filename, SaveFlags flags = SaveFlags.None);
 
 		[CCode (cname = "clang_reparseTranslationUnit")]
-		public int reparse ([CCode(array_length_pos=0.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null, ReparseFlags flags = ReparseFlags.None);
+		public int reparse([CCode(array_length_pos=0.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null, ReparseFlags flags = ReparseFlags.None);
 
 		public ReparseFlags default_reparse_options
 		{
@@ -273,7 +263,7 @@ namespace CX
 		}
 	}
 
-	[CCode (cname = "CXLinkageKind")]
+	[CCode (cname = "enum CXLinkageKind")]
 	public enum LinkageKind
 	{
 		[CCode (cname = "CXLinkage_Invalid")]
@@ -292,7 +282,7 @@ namespace CX
 		EXTERNAL
 	}
 
-	[CCode (cname = "CXAvailabilityKind")]
+	[CCode (cname = "enum CXAvailabilityKind")]
 	public enum AvailablilityKind
 	{
 		[CCode (cname = "CXAvailability_Available")]
@@ -305,7 +295,7 @@ namespace CX
 		NOT_AVAILABLE
 	}
 
-	[CCode (cname = "CXLanguageKind")]
+	[CCode (cname = "enum CXLanguageKind")]
 	public enum LanguageKind
 	{
 		[CCode (cname = "CXLanguage_Invalid")]
@@ -321,7 +311,7 @@ namespace CX
 		OBJ_C
 	}
 
-	[CCode (cname = "CXCursorKind")]
+	[CCode (cname = "enum CXCursorKind")]
 	public enum CursorKind
 	{
 		[CCode (cname = "CXCursor_UnexposedDecl")]
@@ -807,7 +797,7 @@ namespace CX
 		public bool insert(Cursor cursor);
 	}
 
-	[CCode (cname = "CXDiagnosticSeverity")]
+	[CCode (cname = "enum CXDiagnosticSeverity")]
 	public enum DiagnosticSeverity
 	{
 		[CCode(cname = "CXDiagnostic_Ignored")]
@@ -827,7 +817,7 @@ namespace CX
 	}
 
 	[Flags]
-	[CCode (cname = "CXDiagnosticDisplayOptionst")]
+	[CCode (cname = "enum CXDiagnosticDisplayOptionst")]
 	public enum DiagnosticDisplayOptions
 	{
 		[CCode (cname = "CXDiagnostic_DisplaySourceLocation")]
@@ -902,7 +892,7 @@ namespace CX
 		public String get_fixit(uint fixit, out SourceRange range);
 	}
 
-	[CCode (cname = "CXTypeKind")]
+	[CCode (cname = "enum CXTypeKind")]
 	public enum TypeKind
 	{
 		[CCode (cname = "CXType_Invalid")]
@@ -1105,7 +1095,7 @@ namespace CX
 		}
 	}
 
-	[CCode (cname = "CX_CXXAccessSpecifier")]
+	[CCode (cname = "enum CX_CXXAccessSpecifier")]
 	public enum CXXAccessSpecifier
 	{
 		[CCode (cname = "CX_CXXInvalidAccessSpecifier")]
@@ -1121,7 +1111,7 @@ namespace CX
 		PRIVATE
 	}
 
-	[CCode (cname = "CXTokenKind")]
+	[CCode (cname = "enum CXTokenKind")]
 	public enum TokenKind
 	{
 		[CCode (cname = "CXToken_Punctuation")]
@@ -1218,7 +1208,7 @@ namespace CX
 	}
 
 	[Flags]
-	[CCode (cname = "CXCodeComplete_Flags")]
+	[CCode (cname = "enum CXCodeComplete_Flags")]
 	public enum CodeCompleteFlags
 	{
 		[CCode (cname = "CXCodeComplete_IncludeMacros")]

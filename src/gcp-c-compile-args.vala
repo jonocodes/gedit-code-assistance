@@ -1,6 +1,6 @@
 using Gee;
 
-namespace Gcp
+namespace Gcp.C
 {
 	public errordomain CompileArgsError
 	{
@@ -9,10 +9,130 @@ namespace Gcp
 		MISSING_MAKE_OUTPUT
 	}
 
-	class CompileArgs
+	class CompileArgs : Object
 	{
+		private class Cache
+		{
+			private File d_source;
+			private File d_makefile;
+			private string[] d_args;
 
-		private static File ?MakefileFor(File file)
+			public Cache(File source, File makefile, string[] args)
+			{
+				d_source = source;
+				d_makefile = makefile;
+				d_args = args;
+			}
+
+			public File makefile
+			{
+				get
+				{
+					return d_makefile;
+				}
+			}
+
+			public File source
+			{
+				get
+				{
+					return d_source;
+				}
+			}
+
+			public string[] args
+			{
+				get
+				{
+					return d_args;
+				}
+			}
+		}
+		private class Makefile
+		{
+			private File d_file;
+			private ArrayList<File> d_sources;
+			private FileMonitor ?d_monitor;
+			private uint d_timeoutid;
+
+			public Makefile(File file)
+			{
+				d_file = file;
+				d_timeoutid = 0;
+				d_monitor = null;
+
+				try
+				{
+					d_monitor = file.monitor(FileMonitorFlags.NONE);
+				}
+				catch (Error error)
+				{
+					return;
+				}
+
+				d_monitor.changed.connect(on_makefile_changed);
+			}
+
+			public bool valid
+			{
+				get
+				{
+					return d_monitor != null;
+				}
+			}
+
+			public void add(File source)
+			{
+				d_sources.add(source);
+			}
+
+			public bool remove(File source)
+			{
+				d_sources.remove(source);
+
+				return (d_sources.size == 0);
+			}
+
+			private void on_makefile_changed(File file, File ?other, FileMonitorEvent event_type)
+			{
+				if (event_type == FileMonitorEvent.CHANGED ||
+				    event_type == FileMonitorEvent.CREATED)
+				{
+					if (d_timeoutid != 0)
+					{
+						Source.remove(d_timeoutid);
+					}
+
+					d_timeoutid = Timeout.add(100, on_makefile_timeout);
+				}
+			}
+
+			private bool on_makefile_timeout()
+			{
+				d_timeoutid = 0;
+
+				/* Remove args cache for sources */
+				foreach (File source in d_sources)
+				{
+					CompileArgs.remove_cache(source);
+				}
+
+				return false;
+			}
+			
+		}
+
+		private static HashMap<File, Cache> s_argsCache;
+		private static HashMap<File, Makefile> s_makefileCache;
+
+		static construct
+		{
+			s_argsCache = new HashMap<File, Cache>(File.hash, (EqualFunc)File.equal);
+			s_makefileCache = new HashMap<File, Makefile>(File.hash, (EqualFunc)File.equal);
+		}
+
+		private static File ?MakefileFor(File file,
+		                                 Cancellable ?cancellable) throws IOError, Error
 		{
 			File ?ret = null;
 
@@ -27,7 +147,7 @@ namespace Gcp
 
 				File makefile = par.get_child("Makefile");
 
-				if (makefile.query_exists())
+				if (makefile.query_exists(cancellable))
 				{
 					ret = makefile;
 				}
@@ -227,13 +347,68 @@ namespace Gcp
 			return FilterFlags(retargs);
 		}
 
-		public static string[] ?Guess(File file) throws IOError,
-		                                                RegexError,
-		                                                CompileArgsError,
-		                                                SpawnError,
-		                                                ShellError
+		public static void remove_cache(File file)
 		{
-			File ?makefile = MakefileFor(file);
+			if (s_argsCache.has_key(file))
+			{
+				s_argsCache.unset(file);
+			}
+		}
+
+		public static void remove(File file)
+		{
+			if (!s_argsCache.has_key(file))
+			{
+				return;
+			}
+
+			File makefile = s_argsCache[file].makefile;
+
+			if (s_makefileCache.has_key(makefile))
+			{
+				if (s_makefileCache[makefile].remove(file))
+				{
+					s_makefileCache.unset(makefile);
+				}
+			}
+
+			s_argsCache.unset(file);
+		}
+
+		public static string[] ?from_cache(File file)
+		{
+			if (s_argsCache.has_key(file))
+			{
+				return s_argsCache[file].args;
+			}
+
+			return null;
+		}
+
+		public static string[] ?
+		guess(File file,
+		      Cancellable ?cancellable = null) throws IOError,
+		                                              RegexError,
+		                                              CompileArgsError,
+		                                              SpawnError,
+		                                              ShellError,
+		                                              Error
+		{
+			if (s_argsCache.has_key(file))
+			{
+				return s_argsCache[file].args;
+			}
+
+			File ?makefile = null;
+
+			try
+			{
+				makefile = MakefileFor(file, cancellable);
+			}
+			catch (IOError.CANCELLED error)
+			{
+				return null;
+			}
 
 			if (makefile == null)
 			{
@@ -242,9 +417,34 @@ namespace Gcp
 			}
 
 			string target = TargetFromMake(makefile, file);
-			return FlagsFromTarget(makefile, file, target);
+
+			if (cancellable != null && cancellable.is_cancelled())
+			{
+				return null;
+			}
+
+			string[] args = FlagsFromTarget(makefile, file, target);
+
+			if (cancellable != null && cancellable.is_cancelled())
+			{
+				return null;
+			}
+
+			if (args != null)
+			{
+				s_argsCache[file] = new Cache(file, makefile, args);
+
+				if (!s_makefileCache.has_key(makefile))
+				{
+					s_makefileCache[makefile] = new Makefile(makefile);
+				}
+
+				s_makefileCache[makefile].add(file);
+			}
+
+			return args;
 		}
 	}
 }
 
-/* vi:ex:ts=2 */
+/* vi:ex:ts=4 */

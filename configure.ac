@@ -43,15 +43,31 @@ GCP_LIBS="${GCP_LIBS}"
 AC_SUBST(GCP_LIBS)
 AC_SUBST(GCP_CFLAGS)
 
+dnl ================================================================
+dnl Install location for plugin
+dnl ================================================================
+geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
+
+GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
+AC_SUBST(GEDIT_PLUGIN_DIR)
 
 dnl ================================================================
-dnl Check for gedit
+dnl Find clang headers and lib
 dnl ================================================================
-GEDIT_PLUGIN_DIR="$libdir/gedit/plugins"
-AC_SUBST(GEDIT_PLUGIN_DIR)
+AC_CHECK_LIB([clang],
+             [clang_createIndex],
+             [CLANG_LIBS="-lclang"],
+             [AC_MSG_ERROR([could not find clang library])])
+
+AC_CHECK_HEADER([clang-c/Index.h],
+                [],
+                [AC_MSG_ERROR([could not find clang header Index.h])])
+
+AC_SUBST(CLANG_LIBS)
 
 AC_CONFIG_FILES([
 Makefile
+data/Makefile
 src/Makefile
 ])
 
