@@ -63,7 +63,7 @@ namespace CX
 		[CCode (cname = "clang_parseTranslationUnit")]
 		public TranslationUnit(Index idx,
 		                       string ?source_filename = 0,
-		                       [CCode(array_length_pos=3.9, array_null_terminated = false)] string[] ?command_line_args = null,
+		                       [CCode(array_length_pos=3.9, array_null_terminated = false, type = "char const * const *")] string[] ?command_line_args = null,
 		                       [CCode(array_length_pos=5.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null,
 		                       ParseFlags options = ParseFlags.default());
 

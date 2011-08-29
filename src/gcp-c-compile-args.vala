@@ -48,12 +48,15 @@ namespace Gcp.C
 				}
 			}
 		}
+
 		private class Makefile
 		{
 			private File d_file;
 			private ArrayList<File> d_sources;
 			private FileMonitor ?d_monitor;
 			private uint d_timeoutid;
+
+			public signal void changed();
 
 			public Makefile(File file)
 			{
@@ -93,6 +96,14 @@ namespace Gcp.C
 				return (d_sources.size == 0);
 			}
 
+			public ArrayList<File> sources
+			{
+				get
+				{
+					return d_sources;
+				}
+			}
+
 			private void on_makefile_changed(File file, File ?other, FileMonitorEvent event_type)
 			{
 				if (event_type == FileMonitorEvent.CHANGED ||
@@ -111,28 +122,24 @@ namespace Gcp.C
 			{
 				d_timeoutid = 0;
 
-				/* Remove args cache for sources */
-				foreach (File source in d_sources)
-				{
-					CompileArgs.remove_cache(source);
-				}
+				changed();
 
 				return false;
 			}
 			
 		}
 
-		private static HashMap<File, Cache> s_argsCache;
-		private static HashMap<File, Makefile> s_makefileCache;
+		private HashMap<File, Cache> d_argsCache;
+		private HashMap<File, Makefile> d_makefileCache;
 
-		static construct
+		construct
 		{
-			s_argsCache = new HashMap<File, Cache>(File.hash, (EqualFunc)File.equal);
-			s_makefileCache = new HashMap<File, Makefile>(File.hash, (EqualFunc)File.equal);
+			d_argsCache = new HashMap<File, Cache>(File.hash, (EqualFunc)File.equal);
+			d_makefileCache = new HashMap<File, Makefile>(File.hash, (EqualFunc)File.equal);
 		}
 
-		private static File ?MakefileFor(File file,
-		                                 Cancellable ?cancellable) throws IOError, Error
+		private File ?MakefileFor(File file,
+		                          Cancellable ?cancellable) throws IOError, Error
 		{
 			File ?ret = null;
 
@@ -156,10 +163,10 @@ namespace Gcp.C
 			return ret;
 		}
 
-		private static string TargetFromMake(File makefile,
-		                                     File source) throws SpawnError,
-		                                                         RegexError,
-		                                                         CompileArgsError
+		private string TargetFromMake(File makefile,
+		                              File source) throws SpawnError,
+		                                                  RegexError,
+		                                                  CompileArgsError
 		{
 			File wd = source.get_parent();
 			string basen = source.get_basename();
@@ -238,7 +245,7 @@ namespace Gcp.C
 				"Could not find make target for %s".printf(basen));
 		}
 
-		private static string[] FilterFlags(string[] args)
+		private string[] FilterFlags(string[] args)
 		{
 			bool inexpand = false;
 			int i = 0;
@@ -296,11 +303,11 @@ namespace Gcp.C
 			return ret.to_array();
 		}
 
-		private static string[] ?FlagsFromTarget(File   makefile,
-		                                         File   source,
-		                                         string target) throws SpawnError,
-		                                                             CompileArgsError,
-		                                                             ShellError
+		private string[] ?FlagsFromTarget(File   makefile,
+		                                  File   source,
+		                                  string target) throws SpawnError,
+		                                                        CompileArgsError,
+		                                                        ShellError
 		{
 			/* Fake make to build the target and extract the flags */
 			string relsource = makefile.get_parent().get_relative_path(source);
@@ -347,45 +354,35 @@ namespace Gcp.C
 			return FilterFlags(retargs);
 		}
 
-		public static void remove_cache(File file)
+		public void remove_cache(File file)
 		{
-			if (s_argsCache.has_key(file))
+			if (d_argsCache.has_key(file))
 			{
-				s_argsCache.unset(file);
+				d_argsCache.unset(file);
 			}
 		}
 
-		public static void remove(File file)
+		public void remove(File file)
 		{
-			if (!s_argsCache.has_key(file))
+			if (!d_argsCache.has_key(file))
 			{
 				return;
 			}
 
-			File makefile = s_argsCache[file].makefile;
+			File makefile = d_argsCache[file].makefile;
 
-			if (s_makefileCache.has_key(makefile))
+			if (d_makefileCache.has_key(makefile))
 			{
-				if (s_makefileCache[makefile].remove(file))
+				if (d_makefileCache[makefile].remove(file))
 				{
-					s_makefileCache.unset(makefile);
+					d_makefileCache.unset(makefile);
 				}
 			}
 
-			s_argsCache.unset(file);
+			d_argsCache.unset(file);
 		}
 
-		public static string[] ?from_cache(File file)
-		{
-			if (s_argsCache.has_key(file))
-			{
-				return s_argsCache[file].args;
-			}
-
-			return null;
-		}
-
-		public static string[] ?
+		public string[] ?
 		guess(File file,
 		      Cancellable ?cancellable = null) throws IOError,
 		                                              RegexError,
@@ -394,9 +391,9 @@ namespace Gcp.C
 		                                              ShellError,
 		                                              Error
 		{
-			if (s_argsCache.has_key(file))
+			if (d_argsCache.has_key(file))
 			{
-				return s_argsCache[file].args;
+				return d_argsCache[file].args;
 			}
 
 			File ?makefile = null;
@@ -432,14 +429,23 @@ namespace Gcp.C
 
 			if (args != null)
 			{
-				s_argsCache[file] = new Cache(file, makefile, args);
+				d_argsCache[file] = new Cache(file, makefile, args);
 
-				if (!s_makefileCache.has_key(makefile))
+				if (!d_makefileCache.has_key(makefile))
 				{
-					s_makefileCache[makefile] = new Makefile(makefile);
+					Makefile m = new Makefile(makefile);
+
+					m.changed.connect((mm) => {
+						foreach (File source in mm.sources)
+						{
+							remove_cache(source);
+						}
+					});
+
+					d_makefileCache[makefile] = m;
 				}
 
-				s_makefileCache[makefile].add(file);
+				d_makefileCache[makefile].add(file);
 			}
 
 			return args;

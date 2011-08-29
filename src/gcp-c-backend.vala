@@ -5,6 +5,7 @@ class Backend : Gcp.Backend
 {
 	private static string[] s_langs;
 	private CX.Index d_index;
+	private CompileArgs d_compileArgs;
 
 	static construct
 	{
@@ -14,6 +15,7 @@ class Backend : Gcp.Backend
 	public Backend()
 	{
 		d_index = new CX.Index(true, false);
+		d_compileArgs = new CompileArgs();
 	}
 
 	public unowned CX.Index index
@@ -24,44 +26,32 @@ class Backend : Gcp.Backend
 		}
 	}
 
-	public CX.TranslationUnit ?create_tu_from_cache(File source)
-	{
-		string[] ?args;
-
-		args = CompileArgs.from_cache(source);
-
-		if (args != null)
-		{
-			return new CX.TranslationUnit(d_index, source.get_path(), args);
-		}
-		else
-		{
-			return null;
-		}
-	}
-
-	public async CX.TranslationUnit ?create_tu(File source)
+	public async CX.TranslationUnit ?create_tu(File source, Cancellable ?cancellable = null)
 	{
 		string[] ?args = null;
+		CX.TranslationUnit ret = null;
 
 		yield async_in_thread(() => {
 			try
 			{
-				args = CompileArgs.guess(source);
+				args = d_compileArgs.guess(source, cancellable);
 			}
 			catch {}
+
+			if (args != null)
+			{
+				ret = new CX.TranslationUnit(d_index,
+				                             source.get_path(),
+				                             args);
+			}
 		});
 
-		if (args != null)
-		{
-			return new CX.TranslationUnit(d_index,
-			                              source.get_path(),
-			                              args);
-		}
-		else
+		if (cancellable != null && cancellable.is_cancelled())
 		{
 			return null;
 		}
+
+		return (owned)ret;
 	}
 
 	protected override Gcp.Document create_document(Gedit.Document document)
