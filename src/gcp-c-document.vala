@@ -24,7 +24,11 @@ class Document : Gcp.Document
 			return;
 		}
 
+#if WITH_GEDIT3
 		File ?location = document.location;
+#else
+		File? location = File.new_for_uri(document.get_uri());
+#endif
 
 		if (location == null)
 		{

@@ -35,21 +35,12 @@ PKG_CHECK_MODULES(GCP, [
 	glib-2.0
 	gio-2.0
 	gee-1.0
-	gedit
 ])
 
 GCP_LIBS="${GCP_LIBS}"
 
 AC_SUBST(GCP_LIBS)
 AC_SUBST(GCP_CFLAGS)
-
-dnl ================================================================
-dnl Install location for plugin
-dnl ================================================================
-geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
-
-GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
-AC_SUBST(GEDIT_PLUGIN_DIR)
 
 dnl ================================================================
 dnl Find clang headers and lib
@@ -64,6 +55,56 @@ AC_CHECK_HEADER([clang-c/Index.h],
                 [AC_MSG_ERROR([could not find clang header Index.h])])
 
 AC_SUBST(CLANG_LIBS)
+
+dnl ================================================================
+dnl Find gedit
+dnl ================================================================
+AC_ARG_WITH([gedit],
+            AS_HELP_STRING([--with-gedit=[2/3/auto]],[gedit version to compile for (default: auto)]),
+            [with_gedit=$enableval],
+            [with_gedit=auto])
+
+if test "x$with_gedit" = "xauto"; then
+	PKG_CHECK_MODULES([GEDIT3],
+	                  [gedit >= 3.0],
+	                  [with_gedit=3
+	                   geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
+	                   GEDIT_CFLAGS="$GEDIT3_CFLAGS"
+	                   GEDIT_LIBS="$GEDIT3_LIBS"],
+	                  [PKG_CHECK_MODULES([GEDIT2],
+	                                     [gedit-2.20],
+	                                     [with_gedit=2
+	                                      geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20),
+	                                      GEDIT_CFLAGS="$GEDIT2_CFLAGS"
+	                                      GEDIT_LIBS="$GEDIT2_LIBS"],
+	                                     [AC_MSG_ERROR([could not find gedit])])])
+elif test "x$with_gedit" = "x2"; then
+	PKG_CHECK_MODULES([GEDIT], [gedit-2.20])
+
+	geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20)
+elif test "x$with_gedit" = "x3"; then
+	PKG_CHECK_MODULES([GEDIT], [gedit >= 3.0])
+	geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
+else
+	AC_MSG_ERROR([invalid gedit version])
+fi
+
+if test "x$with_gedit" = "x2"; then
+	GEDIT_PLUGIN_DIR="$geditlibdir/gedit-2.0/plugins"
+else
+	GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
+fi
+
+AC_SUBST(GEDIT_PLUGIN_DIR)
+
+AC_SUBST(GEDIT_CFLAGS)
+AC_SUBST(GEDIT_LIBS)
+
+GEDIT_MAJOR_VERSION="$with_gedit"
+AC_SUBST(GEDIT_MAJOR_VERSION)
+
+AM_CONDITIONAL(WITH_GEDIT2, test "x$GEDIT_MAJOR_VERSION" = "x2")
+AM_CONDITIONAL(WITH_GEDIT3, test "x$GEDIT_MAJOR_VERSION" = "x3")
 
 AC_CONFIG_FILES([
 Makefile
@@ -81,5 +122,7 @@ Configuration:
 	Source code location:	${srcdir}
 	Compiler:		${CC}
 	valac:			$VALAC
+	gedit version:          $with_gedit
+	gedit plugin dir:       $GEDIT_PLUGIN_DIR
 "
 
