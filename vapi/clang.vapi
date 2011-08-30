@@ -34,7 +34,7 @@ namespace CX
 		[CCode (cname = "CXTranslationUnit_CXXChainedPCH")]
 		CXXChainedPCH;
 
-		[CXCode (cname = "clang_defaultEditingTranslationUnitOptions")]
+		[CCode (cname = "clang_defaultEditingTranslationUnitOptions")]
 		public static ParseFlags default();
 	}
 
@@ -64,7 +64,7 @@ namespace CX
 		public TranslationUnit(Index idx,
 		                       string ?source_filename = 0,
 		                       [CCode(array_length_pos=3.9, array_null_terminated = false, type = "char const * const *")] string[] ?command_line_args = null,
-		                       [CCode(array_length_pos=5.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null,
+		                       [CCode(array_length_pos=4.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null,
 		                       ParseFlags options = ParseFlags.default());
 
 		[CCode (cname = "clang_createTranslationUnit")]
@@ -191,34 +191,32 @@ namespace CX
 		public ulong length;
 	}
 
-	[Compact]
-	[CCode (cname = "CXString", free_function = "clang_disposeString")]
-	public class String
+	[SimpleType]
+	[CCode (cname = "CXString", destroy_function = "clang_disposeString")]
+	public struct String
 	{
-		public unowned string str
-		{
-			[CCode (cname = "clang_getCString")]
-			get;
-		}
+		[CCode (cname = "clang_getCString")]
+		public unowned string str();
 	}
 
 	[Compact, Immutable]
-	[CCode (cname = "CXFile")]
+	[CCode (cname = "void")]
 	public class File
 	{
-		String name
+		public String name
 		{
-			[CCode (cname = "clang_getFilename")]
+			[CCode (cname = "clang_getFileName")]
 			get;
 		}
 
-		time_t time
+		public time_t time
 		{
 			[CCode (cname = "clang_getFileTime")]
 			get;
 		}
 	}
 
+	[SimpleType]
 	[CCode (cname = "CXSourceLocation")]
 	public struct SourceLocation
 	{
@@ -232,7 +230,7 @@ namespace CX
 		public bool equal(SourceLocation other);
 
 		[CCode (cname = "clang_getSpellingLocation")]
-		public void get_spelling(out File file,
+		public void get_spelling(out unowned File file,
 		                         out uint line,
 		                         out uint column,
 		                         out uint offset);
@@ -580,62 +578,52 @@ namespace CX
 		public String spelling();
 	}
 
-	public delegate void ChildrenVisitorCallback(Cursor cursor, Cursor parent);
+	[CCode (cname = "enum CXChildVisitResult")]
+	public enum ChildVisitResult
+	{
+		[CCode (cname = "CXChildVisit_Break")]
+		BREAK,
+
+		[CCode (cname = "CXChildVisit_Continue")]
+		CONTINUE,
+
+		[CCode (cname = "CXChildVisit_Recurse")]
+		RECURSE,
+	}
+
+	public delegate ChildVisitResult ChildrenVisitorCallback(Cursor cursor, Cursor parent);
 
 	[SimpleType]
+	[Immutable]
 	[CCode (cname = "CXCursor")]
 	public struct Cursor
 	{
-		public CursorKind kind
-		{
-			[CCode (cname = "clang_getCursorKind")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorKind")]
+		public CursorKind kind();
 
-		public Cursor invalid
-		{
-			[CCode (cname = "clang_getNullCursor")]
-			get;
-		}
+		[CCode (cname = "clang_getNullCursor")]
+		public Cursor invalid();
 
 		[CCode (cname = "clang_equalCursors")]
 		public bool equal(Cursor other);
 
-		public uint hash
-		{
-			[CCode (cname = "clang_hashCursor")]
-			get;
-		}
+		[CCode (cname = "clang_hashCursor")]
+		public uint hash();
 
-		public LinkageKind linkage
-		{
-			[CCode (cname = "clang_getCursorLinkage")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorLinkage")]
+		public LinkageKind linkage();
 
-		public AvailablilityKind availability
-		{
-			[CCode (cname = "clang_getCursorAvailability")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorAvailability")]
+		public AvailablilityKind availability();
 
-		public LanguageKind language
-		{
-			[CCode (cname = "clang_getCursorLanguage")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorLanguage")]
+		public LanguageKind language();
 
-		public Cursor semantic_parent
-		{
-			[CCode (cname = "clang_getCursorSemanticParent")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorSemanticParent")]
+		public Cursor semantic_parent();
 
-		public Cursor lexical_parent
-		{
-			[CCode (cname = "clang_getCursorLexicalParent")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorLexicalParent")]
+		public Cursor lexical_parent();
 
 		[CCode (cname = "clang_getOverriddenCursors")]
 		private void get_overridden_cursors(out Cursor* overridden, out uint num);
@@ -664,122 +652,65 @@ namespace CX
 			}
 		}
 
-		public File included_file
-		{
-			[CCode (cname = "clang_getIncludedFile")]
-			get;
-		}
+		[CCode (cname = "clang_getIncludedFile")]
+		public File included_file();
 
-		public SourceLocation location
-		{
-			[CCode (cname = "clang_getCursorLocation")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorLocation")]
+		public SourceLocation location();
 
-		public SourceRange extent
-		{
-			[CCode (cname = "clang_getCursorExtent")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorExtent")]
+		public SourceRange extent();
 
-		public Type type
-		{
-			[CCode (cname = "clang_getCursorType")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorType")]
+		public Type type();
 
-		public Type result_type
-		{
-			[CCode (cname = "clang_getCursorResultType")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorResultType")]
+		public Type result_type();
 
-		public bool is_virtual_base
-		{
-			[CCode (cname = "clang_isVirtualBase")]
-			get;
-		}
+		[CCode (cname = "clang_isVirtualBase")]
+		public bool is_virtual_base();
 
-		public CXXAccessSpecifier cxx_access_specifier
-		{
-			[CCode (cname = "clang_getCXXAccessSpecifier")]
-			get;
-		}
+		[CCode (cname = "clang_getCXXAccessSpecifier")]
+		public CXXAccessSpecifier cxx_access_specifier();
 
-		public uint num_overloaded_decls
-		{
-			[CCode (cname = "clang_getNumOverloadedDecls")]
-			get;
-		}
+		[CCode (cname = "clang_getNumOverloadedDecls")]
+		public uint num_overloaded_decls();
 
 		[CCode (cname = "clang_getOverloadedDecl")]
 		public Cursor get_overloaded_decl(uint idx);
 
-		public Type ib_outlet_collection_type
-		{
-			[CCode (cname = "clang_getIBOutletCollectionType")]
-			get;
-		}
+		[CCode (cname = "clang_getIBOutletCollectionType")]
+		public Type ib_outlet_collection_type();
 
-		public String usr
-		{
-			[CCode (cname = "clang_getCursorUSR")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorUSR")]
+		public String usr();
 
-		public String spelling
-		{
-			[CCode (cname = "clang_getCursorSpelling")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorSpelling")]
+		public String spelling();
 
-		public String display_name
-		{
-			[CCode (cname = "clang_getCursorDisplayName")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorReferenced")]
+		public Cursor cursor_referenced();
 
-		public Cursor cursor_referenced
-		{
-			[CCode (cname = "clang_getCursorReferenced")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorDefinition")]
+		public Cursor definition();
 
-		public Cursor definition
-		{
-			[CCode (cname = "clang_getCursorDefinition")]
-			get;
-		}
+		[CCode (cname = "clang_isCursorDefinition")]
+		public bool is_definition();
 
-		public bool is_definition
-		{
-			[CCode (cname = "clang_isCursorDefinition")]
-			get;
-		}
+		[CCode (cname = "clang_getCanonicalCursor")]
+		public Cursor canonical_cursor();
 
-		public Cursor canonical_cursor
-		{
-			[CCode (cname = "clang_getCanonicalCursor")]
-			get;
-		}
+		[CCode (cname = "clang_CXXMethod_isStatic")]
+		public bool cxx_method_is_static();
 
-		public bool cxx_method_is_static
-		{
-			[CCode (cname = "clang_CXXMethod_isStatic")]
-			get;
-		}
+		[CCode (cname = "clang_getTemplateCursorKind")]
+		public CursorKind template_cursor_kind();
 
-		public CursorKind template_cursor_kind
-		{
-			[CCode (cname = "clang_getTemplateCursorKind")]
-			get;
-		}
+		[CCode (cname = "clang_getSpecializedCursorTemplate")]
+		public Cursor specialized_cursor_template();
 
-		public Cursor specialized_cursor_template
-		{
-			[CCode (cname = "clang_getSpecializedCursorTemplate")]
-			get;
-		}
+		[CCode (cname = "clang_getCursorDisplayName")]
+		public String display_name();
 
 		[CCode (cname = "clang_visitChildren")]
 		public bool visit_children(ChildrenVisitorCallback callback);
@@ -819,7 +750,7 @@ namespace CX
 	}
 
 	[Flags]
-	[CCode (cname = "enum CXDiagnosticDisplayOptionst")]
+	[CCode (cname = "enum CXDiagnosticDisplayOptions")]
 	public enum DiagnosticDisplayOptions
 	{
 		[CCode (cname = "CXDiagnostic_DisplaySourceLocation")]
@@ -849,7 +780,7 @@ namespace CX
 	public class Diagnostic
 	{
 		[CCode (cname = "clang_formatDiagnostic")]
-		public String format(DiagnosticDisplayOptions options = DiagnosticDisplayOptions.default);
+		public String format(DiagnosticDisplayOptions options = DiagnosticDisplayOptions.default());
 
 		public DiagnosticSeverity severity
 		{
