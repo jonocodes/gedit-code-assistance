@@ -9,6 +9,7 @@ class Backend : Gcp.Backend
 	private CX.Index d_index;
 	private CompileArgs d_compileArgs;
 	private HashMap<File, LinkedList<Document>> d_documentMap;
+	private uint d_changedId;
 
 	static construct
 	{
@@ -22,6 +23,8 @@ class Backend : Gcp.Backend
 
 		d_compileArgs.arguments_changed.connect(on_arguments_changed);
 		d_documentMap = new HashMap<File, LinkedList<Document>>(File.hash, (EqualFunc)File.equal);
+
+		d_changedId = 0;
 	}
 
 	public unowned CX.Index index
@@ -142,11 +145,26 @@ class Backend : Gcp.Backend
 		                           doc.location.get_path(),
 		                           args,
 		                           unsaved_files);
+
+		doc.tainted = false;
 	}
 
-	private void reparse(Document doc)
+	private void reparse()
 	{
-		doc.translation_unit.reparse(unsaved_files);
+		UnsavedFile[] uf = unsaved_files;
+
+		foreach (Gcp.Document doc in documents)
+		{
+			if (!doc.tainted)
+			{
+				continue;
+			}
+
+			Document d = doc as Document;
+			d.translation_unit.reparse(uf);
+
+			d.tainted = false;
+		}
 	}
 
 	private void on_arguments_changed(File file)
@@ -166,7 +184,24 @@ class Backend : Gcp.Backend
 
 	protected override void on_document_changed(Gcp.Document doc)
 	{
-		reparse(doc as Document);
+		base.on_document_changed(doc);
+
+		Document d = doc as Document;
+
+		d.translation_unit.tainted = true;
+
+		if (d_changedId != 0)
+		{
+			Source.remove(d_changedId);
+		}
+
+		d_changedId = Timeout.add(200, () => {
+			d_changedId = 0;
+
+			reparse();
+
+			return false;
+		});
 	}
 }
 
