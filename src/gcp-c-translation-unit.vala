@@ -7,13 +7,15 @@ class TranslationUnit
 	private Mutex d_slock;
 	private Cond d_cond;
 	private bool d_exit;
+	private bool d_tainted;
+	private string? d_source;
+	private string[]? d_args;
 	private unowned Thread<void *> d_thread;
+	private unowned CX.Index? d_index;
 
 	private CX.TranslationUnit d_tu;
 
-	private UnsavedFile[] d_unsaved;
-
-	private bool d_parsing;
+	private UnsavedFile[]? d_unsaved;
 
 	public signal void update();
 
@@ -26,8 +28,11 @@ class TranslationUnit
 		d_cond = new Cond();
 
 		d_unsaved = null;
-		d_parsing = false;
 		d_exit = false;
+		d_tainted = false;
+		d_source = null;
+		d_args = null;
+		d_index = null;
 
 		try
 		{
@@ -54,13 +59,54 @@ class TranslationUnit
 		d_thread.join();
 	}
 
+	public bool tainted
+	{
+		get
+		{
+			d_lock.lock();
+			bool ret = d_tainted;
+			d_lock.unlock();
+
+			return ret;
+		}
+		set
+		{
+			d_lock.lock();
+			d_tainted = value;
+			d_lock.unlock();
+		}
+	}
+
 	public void with_translation_unit(WithTranslationUnitCallback callback)
 	{
-		d_lock.lock();
+		if (tainted)
+		{
+			MainContext ctx = MainContext.get_thread_default();
+			bool exitit = false;
 
-		callback(d_tu);
+			while (!exitit)
+			{
+				ctx.iteration(true);
 
-		d_lock.unlock();
+				d_lock.lock();
+				exitit = !d_tainted;
+
+				if (exitit)
+				{
+					callback(d_tu);
+				}
+
+				d_lock.unlock();
+			}
+
+			return;
+		}
+		else
+		{
+			d_lock.lock();
+			callback(d_tu);
+			d_lock.unlock();
+		}
 	}
 
 	public void *reparse_thread()
@@ -68,7 +114,11 @@ class TranslationUnit
 		while (true)
 		{
 			d_slock.lock();
-			d_cond.wait(d_slock);
+
+			if (d_unsaved == null)
+			{
+				d_cond.wait(d_slock);
+			}
 
 			if (d_exit)
 			{
@@ -81,7 +131,24 @@ class TranslationUnit
 			d_slock.unlock();
 
 			d_lock.lock();
-			d_tu.reparse((CX.UnsavedFile[])uf);
+
+			if (d_index != null && d_source != null && d_args != null)
+			{
+				d_tu = new CX.TranslationUnit(d_index,
+				                              d_source,
+				                              d_args,
+				                              (CX.UnsavedFile[])uf);
+
+				d_index = null;
+				d_source = null;
+				d_args = null;
+			}
+			else
+			{
+				d_tu.reparse((CX.UnsavedFile[])uf);
+			}
+
+			d_tainted = false;
 			d_lock.unlock();
 
 			Idle.add(() => {
@@ -96,39 +163,23 @@ class TranslationUnit
 	public void parse(CX.Index idx,
 	                  string source,
 	                  string[] args,
-	                  owned UnsavedFile[]? unsaved = null)
-	{
-		ThreadFunc<void *> run = () => {
-			d_lock.lock();
-
-			d_tu = new CX.TranslationUnit(idx,
-			                              source,
-			                              args,
-			                              (CX.UnsavedFile[])unsaved);
-
-			d_lock.unlock();
-
-			Idle.add(() => {
-				update();
-				return false;
-			});
-
-			return null;
-		};
-
-		try
-		{
-			Thread.create<void *>(run, false);
-		}
-		catch
-		{
-		}
-	}
-
-	public void reparse(owned UnsavedFile[] ?unsaved = null)
+	                  UnsavedFile[]? unsaved)
 	{
 		d_slock.lock();
-		d_unsaved = (owned)unsaved;
+
+		d_unsaved = unsaved;
+		d_index = idx;
+		d_source = source;
+		d_args = args;
+
+		d_cond.signal();
+		d_slock.unlock();
+	}
+
+	public void reparse(UnsavedFile[] ?unsaved = null)
+	{
+		d_slock.lock();
+		d_unsaved = unsaved;
 		d_cond.signal();
 		d_slock.unlock();
 	}
