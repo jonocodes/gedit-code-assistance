@@ -434,7 +434,7 @@ namespace Gcp.C
 			});
 		}
 
-		private void find_async(File file)
+		private async void find_async(File file)
 		{
 			ThreadFunc<void *> func = () => {
 				File ?makefile = null;
@@ -469,6 +469,7 @@ namespace Gcp.C
 			try
 			{
 				Thread.create<void *>(func, false);
+				yield;
 			}
 			catch
 			{
@@ -509,7 +510,7 @@ namespace Gcp.C
 			}
 			else
 			{
-				find_async(file);
+				find_async.begin(file, (source, res) => find_async.end(res));
 			}
 		}
 
