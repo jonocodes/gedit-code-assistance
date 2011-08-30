@@ -74,7 +74,7 @@ if test "x$with_gedit" = "xauto"; then
 	                  [PKG_CHECK_MODULES([GEDIT2],
 	                                     [gedit-2.20],
 	                                     [with_gedit=2
-	                                      geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20),
+	                                      geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20)
 	                                      GEDIT_CFLAGS="$GEDIT2_CFLAGS"
 	                                      GEDIT_LIBS="$GEDIT2_LIBS"],
 	                                     [AC_MSG_ERROR([could not find gedit])])])
@@ -90,7 +90,7 @@ else
 fi
 
 if test "x$with_gedit" = "x2"; then
-	GEDIT_PLUGIN_DIR="$geditlibdir/gedit-2.0/plugins"
+	GEDIT_PLUGIN_DIR="$geditlibdir/gedit-2/plugins"
 else
 	GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
 fi

@@ -10,7 +10,10 @@ class Plugin : Gedit.Plugin
 	public Plugin()
 	{
 		GLib.Object();
+	}
 
+	construct
+	{
 		d_helpers = new HashMap<Gedit.Window, WindowHelper>(direct_hash, direct_equal);
 	}
 
