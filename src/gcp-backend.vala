@@ -61,6 +61,12 @@ abstract class Backend : Object
 
 	protected virtual void on_document_changed(Document doc)
 	{
+		SymbolBrowserSupport? s = doc as SymbolBrowserSupport;
+
+		if (s != null)
+		{
+			s.symbol_browser.tainted = true;
+		}
 	}
 }
 
