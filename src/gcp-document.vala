@@ -10,6 +10,7 @@ class Document : GLib.Object
 	private bool d_modified;
 	private string? d_text;
 	private File? d_location;
+	private bool d_tainted;
 
 	public signal void location_changed(File? previous_location);
 	public signal void changed();
@@ -102,6 +103,25 @@ class Document : GLib.Object
 		}
 	}
 
+	public virtual bool tainted
+	{
+		get
+		{
+			return d_tainted;
+		}
+		set
+		{
+			d_tainted = false;
+		}
+	}
+
+	protected void emit_changed()
+	{
+		d_tainted = true;
+
+		changed();
+	}
+
 	private void update_text()
 	{
 		TextIter start;
@@ -110,7 +130,7 @@ class Document : GLib.Object
 		d_document.get_bounds(out start, out end);
 		d_text = d_document.get_text(start, end, true);
 
-		changed();
+		emit_changed();
 	}
 
 	public File? location
