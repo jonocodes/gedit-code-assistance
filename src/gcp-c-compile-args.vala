@@ -392,20 +392,11 @@ namespace Gcp.C
 		private void find_for_makefile(File makefile, File file)
 		{
 			string target;
-
-			try
-			{
-				target = TargetFromMake(makefile, file);
-			}
-			catch
-			{
-				return;
-			}
-
 			string[] args = {};
 
 			try
 			{
+				target = TargetFromMake(makefile, file);
 				args = FlagsFromTarget(makefile, file, target);
 			}
 			catch
