@@ -77,6 +77,8 @@ namespace Gcp.C
 					return;
 				}
 
+				d_sources = new ArrayList<File>();
+
 				d_monitor.changed.connect(on_makefile_changed);
 			}
 
