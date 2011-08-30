@@ -84,9 +84,14 @@ class View
 		d_document = null;
 	}
 
-	private void register_backend(Backend backend)
+	private void register_backend(Backend? backend)
 	{
 		d_backend = backend;
+
+		if (backend == null)
+		{
+			return;
+		}
 
 		if (d_view.buffer != null)
 		{
