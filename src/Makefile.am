@@ -8,12 +8,16 @@ plugin_LTLIBRARIES = libgcp.la
 
 SOURCES = \
 	gcp.vala \
+	gcp-source-location.vala \
+	gcp-source-range.vala \
 	gcp-view.vala \
 	gcp-document.vala \
 	gcp-backend.vala \
 	gcp-backend-manager.vala \
 	gcp-symbol-browser.vala \
 	gcp-symbol-browser-support.vala \
+	gcp-diagnostic.vala \
+	gcp-diagnostic-support.vala \
 	gcp-c-backend.vala \
 	gcp-c-document.vala \
 	gcp-c-compile-args.vala \

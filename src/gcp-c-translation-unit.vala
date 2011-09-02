@@ -126,6 +126,8 @@ class TranslationUnit
 				break;
 			}
 
+			stdout.printf("Asked to reparse\n");
+
 			UnsavedFile[] uf = (owned)d_unsaved;
 			d_unsaved = null;
 			d_slock.unlock();
@@ -145,6 +147,10 @@ class TranslationUnit
 			}
 			else
 			{
+				if (uf.length > 0)
+				{
+					stdout.printf("Text: %u\n", (uint)uf[0].length);
+				}
 				d_tu.reparse((CX.UnsavedFile[])uf);
 			}
 

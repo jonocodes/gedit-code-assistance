@@ -236,30 +236,18 @@ namespace CX
 		                         out uint offset);
 	}
 
+	[SimpleType]
 	[CCode (cname = "CXSourceRange")]
 	public struct SourceRange
 	{
-		[CCode (cname = "clang_getRange")]
-		public SourceRange(SourceLocation begin,
-		                   SourceLocation end);
+		[CCode (cname = "clang_getNullRange")]
+		public static SourceRange invalid();
 
-		public static SourceRange invalid
-		{
-			[CCode (cname = "clang_getNullRange")]
-			get;
-		}
+		[CCode (cname = "clang_getRangeStart")]
+		public SourceLocation start();
 
-		public SourceLocation range_start
-		{
-			[CCode (cname = "clang_getRangeStart")]
-			get;
-		}
-
-		public SourceLocation range_end
-		{
-			[CCode (cname = "clang_getRangeEnd")]
-			get;
-		}
+		[CCode (cname = "clang_getRangeEnd")]
+		public SourceLocation end();
 	}
 
 	[CCode (cname = "enum CXLinkageKind")]
@@ -797,6 +785,12 @@ namespace CX
 		public String spelling
 		{
 			[CCode (cname = "clang_getDiagnosticSpelling")]
+			get;
+		}
+
+		public uint num_ranges
+		{
+			[CCode (cname = "clang_getDiagnosticNumRanges")]
 			get;
 		}
 

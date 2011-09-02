@@ -132,7 +132,7 @@ class Backend : Gcp.Backend
 
 			for (int i = 0; i < ret.length; ++i)
 			{
-				ret[i] = {docs[i].location.get_path(), docs[i].text};
+				ret[i] = UnsavedFile(docs[i].location.get_path(), docs[i].text);
 			}
 
 			return ret;

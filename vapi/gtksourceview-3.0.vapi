@@ -310,8 +310,8 @@ namespace GtkSource {
 		public unowned string get_icon_name ();
 		public unowned Gdk.Pixbuf get_pixbuf ();
 		public unowned string get_stock_id ();
-		public string get_tooltip_markup (GtkSource.Mark mark);
-		public string get_tooltip_text (GtkSource.Mark mark);
+		public string? get_tooltip_markup (GtkSource.Mark mark);
+		public string? get_tooltip_text (GtkSource.Mark mark);
 		public unowned Gdk.Pixbuf render_icon (Gtk.Widget widget, int size);
 		public void set_background (Gdk.RGBA background);
 		public void set_gicon (GLib.Icon gicon);
@@ -323,8 +323,8 @@ namespace GtkSource {
 		public string icon_name { get; set; }
 		public Gdk.Pixbuf pixbuf { get; set; }
 		public string stock_id { get; set; }
-		public signal string query_tooltip_markup (GtkSource.Mark object);
-		public signal string query_tooltip_text (GtkSource.Mark object);
+		public signal string? query_tooltip_markup (GtkSource.Mark object);
+		public signal string? query_tooltip_text (GtkSource.Mark object);
 	}
 	[CCode (cheader_filename = "gtksourceview/gtksourceview.h")]
 	public class PrintCompositor : GLib.Object {

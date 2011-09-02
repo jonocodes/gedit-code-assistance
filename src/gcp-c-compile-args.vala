@@ -203,6 +203,7 @@ namespace Gcp.C
 			string[] args = new string[] {
 				"make",
 				"-p",
+				"-n",
 				null
 			};
 
@@ -347,6 +348,8 @@ namespace Gcp.C
 
 			string outstr;
 
+			stderr.printf("Trying: %s\n", target);
+
 			Process.spawn_sync(makefile.get_parent().get_path(),
 			                   args,
 			                   null,
@@ -399,8 +402,9 @@ namespace Gcp.C
 				target = TargetFromMake(makefile, file);
 				args = FlagsFromTarget(makefile, file, target);
 			}
-			catch
+			catch (Error e)
 			{
+				stderr.printf("Makefile error: %s\n", e.message);
 			}
 
 			lock(d_makefileCache)
