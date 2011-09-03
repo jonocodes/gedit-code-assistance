@@ -9,7 +9,7 @@ class TranslationUnit
 	private bool d_exit;
 	private bool d_tainted;
 	private string? d_source;
-	private string[]? d_args;
+	private string[] d_args;
 	private unowned Thread<void *> d_thread;
 	private unowned CX.Index? d_index;
 
@@ -31,7 +31,7 @@ class TranslationUnit
 		d_exit = false;
 		d_tainted = false;
 		d_source = null;
-		d_args = null;
+		d_args = new string[] {};
 		d_index = null;
 
 		try
@@ -89,11 +89,15 @@ class TranslationUnit
 				ctx.iteration(true);
 
 				d_lock.lock();
+
 				exitit = !d_tainted;
 
 				if (exitit)
 				{
-					callback(d_tu);
+					if (d_tu != null)
+					{
+						callback(d_tu);
+					}
 				}
 
 				d_lock.unlock();
@@ -104,7 +108,12 @@ class TranslationUnit
 		else
 		{
 			d_lock.lock();
-			callback(d_tu);
+
+			if (d_tu != null)
+			{
+				callback(d_tu);
+			}
+
 			d_lock.unlock();
 		}
 	}
@@ -134,7 +143,7 @@ class TranslationUnit
 
 			d_lock.lock();
 
-			if (d_index != null && d_source != null && d_args != null)
+			if (d_index != null && d_source != null)
 			{
 				d_tu = new CX.TranslationUnit(d_index,
 				                              d_source,
@@ -145,7 +154,7 @@ class TranslationUnit
 				d_source = null;
 				d_args = null;
 			}
-			else
+			else if (d_tu != null)
 			{
 				if (uf.length > 0)
 				{

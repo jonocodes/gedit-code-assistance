@@ -139,7 +139,7 @@ class Backend : Gcp.Backend
 		}
 	}
 
-	private void parse(Document doc, string[]? args)
+	private void parse(Document doc, string[] args)
 	{
 		doc.translation_unit.parse(d_index,
 		                           doc.location.get_path(),
@@ -175,6 +175,11 @@ class Backend : Gcp.Backend
 		}
 
 		string[] ?args = d_compileArgs[file];
+
+		if (args == null)
+		{
+			args = new string[] {};
+		}
 
 		foreach (Document doc in d_documentMap[file])
 		{

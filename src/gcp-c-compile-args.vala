@@ -154,36 +154,33 @@ namespace Gcp.C
 			d_makefileCache = new HashMap<File, Makefile>(File.hash, (EqualFunc)File.equal);
 		}
 
-		private File ?MakefileFor(File file,
-		                          Cancellable ?cancellable = null) throws IOError,
-		                          Error
+		private File ?makefile_for(File file,
+		                           Cancellable ?cancellable = null) throws IOError,
+		                                                                   Error
 		{
 			File ?ret = null;
 
-			while (ret == null)
+			File? par = file.get_parent();
+
+			while (par != null && ret == null)
 			{
-				File par = file.get_parent();
-
-				if (par == null)
-				{
-					return null;
-				}
-
 				File makefile = par.get_child("Makefile");
 
 				if (makefile.query_exists(cancellable))
 				{
 					ret = makefile;
 				}
+
+				par = par.get_parent();
 			}
 
 			return ret;
 		}
 
-		private string TargetFromMake(File makefile,
-		                              File source) throws SpawnError,
-		                                                  RegexError,
-		                                                  CompileArgsError
+		private string target_from_make(File makefile,
+		                                File source) throws SpawnError,
+		                                                    RegexError,
+		                                                    CompileArgsError
 		{
 			File wd = source.get_parent();
 			string basen = source.get_basename();
@@ -263,7 +260,7 @@ namespace Gcp.C
 				"Could not find make target for %s".printf(basen));
 		}
 
-		private string[] FilterFlags(string[] args)
+		private string[] filter_flags(string[] args)
 		{
 			bool inexpand = false;
 			int i = 0;
@@ -321,11 +318,11 @@ namespace Gcp.C
 			return ret.to_array();
 		}
 
-		private string[] ?FlagsFromTarget(File   makefile,
-		                                  File   source,
-		                                  string target) throws SpawnError,
-		                                                        CompileArgsError,
-		                                                        ShellError
+		private string[] ?flags_from_target(File   makefile,
+		                                    File   source,
+		                                    string target) throws SpawnError,
+		                                                          CompileArgsError,
+		                                                          ShellError
 		{
 			/* Fake make to build the target and extract the flags */
 			string relsource = makefile.get_parent().get_relative_path(source);
@@ -348,8 +345,6 @@ namespace Gcp.C
 
 			string outstr;
 
-			stderr.printf("Trying: %s\n", target);
-
 			Process.spawn_sync(makefile.get_parent().get_path(),
 			                   args,
 			                   null,
@@ -371,7 +366,7 @@ namespace Gcp.C
 			Shell.parse_argv(outstr.substring(idx + fakecc.length), out retargs);
 
 			/* Copy only some of the flags that we are actually interested in */
-			return FilterFlags(retargs);
+			return filter_flags(retargs);
 		}
 
 		private void on_makefile_changed(Makefile makefile)
@@ -399,8 +394,8 @@ namespace Gcp.C
 
 			try
 			{
-				target = TargetFromMake(makefile, file);
-				args = FlagsFromTarget(makefile, file, target);
+				target = target_from_make(makefile, file);
+				args = flags_from_target(makefile, file, target);
 			}
 			catch (Error e)
 			{
@@ -432,6 +427,11 @@ namespace Gcp.C
 				}
 			}
 
+			changed_in_idle(file);
+		}
+
+		private void changed_in_idle(File file)
+		{
 			Idle.add(() => {
 				arguments_changed(file);
 				return false;
@@ -445,15 +445,17 @@ namespace Gcp.C
 
 				try
 				{
-					makefile = MakefileFor(file);
+					makefile = makefile_for(file);
 				}
-				catch
+				catch (Error e)
 				{
+					changed_in_idle(file);
 					return null;
 				}
 
 				if (makefile == null)
 				{
+					changed_in_idle(file);
 					return null;
 				}
 
