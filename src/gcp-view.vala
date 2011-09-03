@@ -178,7 +178,7 @@ class View
 				attr = new MarkAttributes();
 
 				attr.set_background({1, 0, 0, 0.2});
-				attr.set_stock_id(Gtk.Stock.DIALOG_ERROR);
+				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-error-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
 
@@ -188,7 +188,7 @@ class View
 				attr = new MarkAttributes();
 
 				attr.set_background({1, 0.65, 0, 0.2});
-				attr.set_stock_id(Gtk.Stock.DIALOG_WARNING);
+				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-warning-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
 
@@ -198,7 +198,7 @@ class View
 				attr = new MarkAttributes();
 
 				attr.set_background({0, 0, 0.4, 0.2});
-				attr.set_stock_id(Gtk.Stock.DIALOG_INFO);
+				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-information-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
 
