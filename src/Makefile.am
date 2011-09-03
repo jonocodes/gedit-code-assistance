@@ -28,7 +28,7 @@ generated = $(SOURCES:.vala=.c)
 
 libgcp_la_SOURCES = $(SOURCES)
 
-libgcp_la_CFLAGS = $(GCP_CFLAGS) $(GEDIT_CFLAGS)
+libgcp_la_CFLAGS = -Wimplicit-function-declaration -Wno-unused-value -Wno-ignored-qualifiers -Wno-conversion $(GCP_CFLAGS) $(GEDIT_CFLAGS)
 libgcp_la_LDFLAGS = -module -shared -avoid-version $(GCP_LIBS) $(CLANG_LIBS) $(GEDIT_LIBS)
 
 valapkgs = gio-2.0 gee-1.0 clang
