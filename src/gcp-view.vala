@@ -81,6 +81,7 @@ class View
 			if (d_document is DiagnosticSupport)
 			{
 				d_view.query_tooltip.disconnect(on_view_query_tooltip);
+				d_view.set_show_line_marks(false);
 			}
 
 			d_backend.unregister(d_document);
@@ -205,6 +206,8 @@ class View
 				d_view.set_mark_attributes(Document.info_mark_category, attr, 0);
 
 				d_view.query_tooltip.connect(on_view_query_tooltip);
+
+				d_view.set_show_line_marks(true);
 			}
 		}
 		else
