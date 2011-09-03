@@ -82,7 +82,7 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 		uint column;
 		uint offset;
 
-		location.get_spelling(out file, out line, out column, out offset);
+		location.get_instantiation(out file, out line, out column, out offset);
 
 		File sfile = File.new_for_path(file.name.str());
 

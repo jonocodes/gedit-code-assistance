@@ -43,7 +43,7 @@ namespace CX
 	                                              SourceLocation[] inclusion_stack);
 
 	[Compact]
-	[CCode (free_function = "clang_disposeTranslationUnit", cname = "struct CXTranslationUnitImpl", cprefix = "clang_")]
+	[CCode (free_function = "clang_disposeTranslationUnit", cname = "void", cprefix = "clang_")]
 	public class TranslationUnit
 	{
 		[CCode (cname = "enum CXSaveTranslationUnit_Flags")]
@@ -229,11 +229,11 @@ namespace CX
 		[CCode (cname = "clang_equalLocations")]
 		public bool equal(SourceLocation other);
 
-		[CCode (cname = "clang_getSpellingLocation")]
-		public void get_spelling(out unowned File file,
-		                         out uint line,
-		                         out uint column,
-		                         out uint offset);
+		[CCode (cname = "clang_getInstantiationLocation")]
+		public void get_instantiation(out unowned File file,
+		                              out uint line,
+		                              out uint column,
+		                              out uint offset);
 	}
 
 	[SimpleType]
