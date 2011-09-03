@@ -24,7 +24,7 @@ SOURCES = \
 	gcp-unsaved-file.vala \
 	gcp-c-translation-unit.vala
 
-generated = $(SOURCES:.vala=.c)
+BUILT_SOURCES = $(SOURCES:.vala=.c)
 
 libgcp_la_SOURCES = $(SOURCES)
 
@@ -53,7 +53,8 @@ endif
 
 
 CLEANFILES = \
-	libgcp_la_vala.stamp
+	libgcp_la_vala.stamp \
+	$(BUILT_SOURCES)
 
 MAINTAINERCLEANFILES = $(generated)
 
