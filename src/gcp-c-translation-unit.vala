@@ -81,6 +81,7 @@ class TranslationUnit
 	{
 		if (tainted)
 		{
+			stdout.printf("tainted...\n");
 			MainContext ctx = MainContext.get_thread_default();
 			bool exitit = false;
 
@@ -143,12 +144,19 @@ class TranslationUnit
 
 			d_lock.lock();
 
+			Timer timer = new Timer();
+			double elapsed = 0;
+
 			if (d_index != null && d_source != null)
 			{
+				timer.start();
+
 				d_tu = new CX.TranslationUnit(d_index,
 				                              d_source,
 				                              d_args,
 				                              (CX.UnsavedFile[])uf);
+
+				elapsed = timer.elapsed();
 
 				d_index = null;
 				d_source = null;
@@ -156,14 +164,15 @@ class TranslationUnit
 			}
 			else if (d_tu != null)
 			{
-				if (uf.length > 0)
-				{
-					stdout.printf("Text: %u\n", (uint)uf[0].length);
-				}
+				timer.start();
 				d_tu.reparse((CX.UnsavedFile[])uf);
+				elapsed = timer.elapsed();
 			}
 
 			d_tainted = false;
+
+			stdout.printf("Took %f seconds to parse...\n", elapsed);
+
 			d_lock.unlock();
 
 			Idle.add(() => {

@@ -5,26 +5,30 @@ namespace Gcp
 
 interface DiagnosticSupport : Document
 {
+	public abstract DiagnosticTags tags { get; set; }
+
 	public signal void updated();
 
-	public abstract uint num_diagnostics { get; }
-	public abstract Diagnostic? diagnostic(uint i);
+	public abstract Diagnostic[] diagnostics { get; }
 
 	public Diagnostic[] find_at(uint line, uint column)
 	{
 		LinkedList<Diagnostic> ret = new LinkedList<Diagnostic>();
 
-		for (uint i = 0; i < num_diagnostics; ++i)
+		foreach (Diagnostic d in diagnostics)
 		{
-			Diagnostic? d = diagnostic(i);
-
 			foreach (SourceRange r in d.ranges)
 			{
 				if (r.contains(line, column))
 				{
 					ret.add(d);
-					break;
+					continue;
 				}
+			}
+
+			if (d.location.line == line && d.location.column == column)
+			{
+				ret.add(d);
 			}
 		}
 
@@ -35,17 +39,20 @@ interface DiagnosticSupport : Document
 	{
 		LinkedList<Diagnostic> ret = new LinkedList<Diagnostic>();
 
-		for (uint i = 0; i < num_diagnostics; ++i)
+		foreach (Diagnostic d in diagnostics)
 		{
-			Diagnostic? d = diagnostic(i);
-
 			foreach (SourceRange r in d.ranges)
 			{
 				if (r.contains_line(line))
 				{
 					ret.add(d);
-					break;
+					continue;
 				}
+			}
+
+			if (d.location.line == line)
+			{
+				ret.add(d);
 			}
 		}
 

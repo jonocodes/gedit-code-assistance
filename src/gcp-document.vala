@@ -11,7 +11,6 @@ class Document : GLib.Object
 	private string? d_text;
 	private File? d_location;
 	private bool d_tainted;
-	private TextTag d_errorTag;
 
 	public signal void location_changed(File? previous_location);
 	public signal void changed();
@@ -57,11 +56,6 @@ class Document : GLib.Object
 		d_location = null;
 
 		update_location();
-
-		d_errorTag = d_document.create_tag("Gcp.Document.Error",
-		                                   underline: Pango.Underline.ERROR,
-		                                   weight: Pango.Weight.BOLD,
-		                                   rise: 1024 * 3);
 
 		DiagnosticSupport diag = this as DiagnosticSupport;
 
@@ -140,34 +134,90 @@ class Document : GLib.Object
 		}
 	}
 
+	private void mark_diagnostic_range(Diagnostic diagnostic,
+	                                   TextIter   start,
+	                                   TextIter   end)
+	{
+		DiagnosticSupport sup = this as DiagnosticSupport;
+
+		TextTag? tag = sup.tags[diagnostic.severity];
+		string? category = mark_category_for_severity(diagnostic.severity);
+
+		d_document.apply_tag(tag, start, end);
+
+		TextIter m = start;
+
+		m.set_line_offset(0);
+
+		while (category != null && m.compare(end) <= 0)
+		{
+			bool alreadyhas = false;
+
+			foreach (GtkSource.Mark mark in d_document.get_source_marks_at_iter(m, category))
+			{
+				if (mark.get_data<Diagnostic>("Gcp.Document.MarkDiagnostic") == diagnostic)
+				{
+					alreadyhas = true;
+					break;
+				}
+			}
+
+			if (!alreadyhas)
+			{
+				GtkSource.Mark mark = d_document.create_source_mark(null,
+				                                                    category,
+				                                                    m);
+
+				mark.set_data("Gcp.Document.MarkDiagnostic", diagnostic);
+			}
+
+			if (!m.forward_line())
+			{
+				break;
+			}
+		}
+	}
+
 	private void mark_diagnostic(Diagnostic diagnostic)
 	{
+		TextIter start;
+		TextIter end;
+
+		DiagnosticSupport sup = this as DiagnosticSupport;
+		TextTag? tag = sup.tags[diagnostic.severity];
+		string? category = mark_category_for_severity(diagnostic.severity);
+
 		for (uint i = 0; i < diagnostic.ranges.length; ++i)
 		{
-			TextIter start;
-			TextIter end;
-
 			if (!source_range(diagnostic.ranges[i], out start, out end))
 			{
 				continue;
 			}
 
-			d_document.apply_tag(d_errorTag, start, end);
+			mark_diagnostic_range(diagnostic, start, end);
+		}
 
-			string? category = mark_category_for_severity(diagnostic.severity);
+		if (source_location(diagnostic.location, out start))
+		{
+			end = start;
 
-			start.set_line_offset(0);
-
-			while (category != null && start.compare(end) <= 0)
+			if (!start.ends_line())
 			{
-				GtkSource.Mark mark = d_document.create_source_mark(null, category, start);
+				end.forward_char();
+			}
 
-				mark.set_data("Gcp.Document.MarkDiagnostic", diagnostic);
+			mark_diagnostic_range(diagnostic, start, end);
 
-				if (!start.forward_line())
-				{
-					break;
-				}
+			d_document.apply_tag(sup.tags.location_tag, start, end);
+		}
+
+		for (uint i = 0; i < diagnostic.fixits.length; ++i)
+		{
+			SourceRange r = diagnostic.fixits[i].range;
+
+			if (source_range(r, out start, out end))
+			{
+				d_document.apply_tag(sup.tags.fixit_tag, start, end);
 			}
 		}
 	}
@@ -178,14 +228,17 @@ class Document : GLib.Object
 		TextIter end;
 
 		d_document.get_bounds(out start, out end);
-		d_document.remove_tag(d_errorTag, start, end);
+
+		d_document.remove_tag(diagnostic.tags.error_tag, start, end);
+		d_document.remove_tag(diagnostic.tags.warning_tag, start, end);
+		d_document.remove_tag(diagnostic.tags.info_tag, start, end);
+		d_document.remove_tag(diagnostic.tags.location_tag, start, end);
+		d_document.remove_tag(diagnostic.tags.fixit_tag, start, end);
 
 		remove_marks();
 
-		for (uint i = 0; i < diagnostic.num_diagnostics; ++i)
+		foreach (Diagnostic diag in diagnostic.diagnostics)
 		{
-			Diagnostic diag = diagnostic.diagnostic(i);
-
 			mark_diagnostic(diag);
 		}
 	}

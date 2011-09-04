@@ -1,5 +1,6 @@
 using Gtk;
 using GtkSource;
+using Gee;
 
 namespace Gcp
 {
@@ -11,19 +12,34 @@ class View
 	private Gedit.Document d_buffer;
 	private Backend d_backend;
 	private Document d_document;
+	private DiagnosticTags d_tags;
+	private ScrollbarMarker d_scrollbarMarker;
+	private HashMap<TextMark, Gdk.RGBA?> d_diagnosticsAtEnd;
 
 	public View(Gedit.View view)
 	{
 		d_view = view;
 
 		d_view.notify["buffer"].connect(on_notify_buffer);
+		d_view.draw.connect_after(on_view_draw);
+
+		d_tags = new DiagnosticTags(d_view);
+		d_diagnosticsAtEnd = new HashMap<TextMark, Gdk.RGBA?>();
 
 		connect_buffer(d_view.buffer as Gedit.Document);
+
+		ScrolledWindow? sw = d_view.parent as ScrolledWindow;
+
+		if (sw != null)
+		{
+			d_scrollbarMarker = new ScrollbarMarker(sw.get_vscrollbar() as Scrollbar);
+		}
 	}
 
 	public void deactivate()
 	{
 		d_view.notify["buffer"].disconnect(on_notify_buffer);
+		d_view.draw.disconnect(on_view_draw);
 
 		disconnect_buffer();
 
@@ -38,6 +54,9 @@ class View
 		}
 
 		d_buffer.notify["language"].disconnect(on_notify_language);
+		d_buffer.changed.disconnect(on_buffer_changed);
+		d_buffer.mark_set.disconnect(on_buffer_mark_set);
+
 		d_buffer = null;
 	}
 
@@ -51,7 +70,15 @@ class View
 		}
 
 		d_buffer.notify["language"].connect(on_notify_language);
+		d_buffer.changed.connect(on_buffer_changed);
+		d_buffer.mark_set.connect(on_buffer_mark_set);
+
 		update_backend();
+	}
+
+	private void on_buffer_changed()
+	{
+		d_scrollbarMarker.max_line = d_buffer.get_line_count();
 	}
 
 	private void update_backend()
@@ -130,7 +157,10 @@ class View
 		}
 	}
 
-	private bool on_view_query_tooltip(int x, int y, bool keyboard_mode, Tooltip tooltip)
+	private bool on_view_query_tooltip(int x,
+	                                   int y,
+	                                   bool keyboard_mode,
+	                                   Tooltip tooltip)
 	{
 		int bx;
 		int by;
@@ -138,10 +168,20 @@ class View
 		d_view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y, out bx, out by);
 
 		TextIter iter;
-		d_view.get_iter_at_position(out iter, null, bx, by);
+	
+		d_view.get_iter_at_location(out iter, bx, by);
 
 		uint line = iter.get_line() + 1;
 		uint col = iter.get_line_offset() + 1;
+
+		// Perform a little calculation for end-of-line diagnostics
+		/*Gdk.Rectangle rect;
+		d_view.get_iter_location(iter, out rect);
+
+		if (bx > rect.x + rect.width)
+		{
+			++col;
+		}*/
 
 		DiagnosticSupport diag = d_document as DiagnosticSupport;
 
@@ -175,10 +215,11 @@ class View
 			{
 				MarkAttributes attr;
 
+				diag.tags = d_tags;
+				diag.updated.connect(on_diagnostic_updated);
+
 				// Error
 				attr = new MarkAttributes();
-
-				attr.set_background({1, 0, 0, 0.2});
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-error-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
@@ -187,8 +228,6 @@ class View
 
 				// Warning
 				attr = new MarkAttributes();
-
-				attr.set_background({1, 0.65, 0, 0.2});
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-warning-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
@@ -197,8 +236,6 @@ class View
 
 				// Info
 				attr = new MarkAttributes();
-
-				attr.set_background({0, 0, 0.4, 0.2});
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-information-symbolic"));
 
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
@@ -216,6 +253,76 @@ class View
 		}
 	}
 
+	private bool diagnostic_is_at_end(SourceLocation location)
+	{
+		TextIter iter;
+
+		d_buffer.get_iter_at_line(out iter, (int)location.line - 1);
+		iter.set_line_offset((int)location.column - 1);
+
+		if (iter.get_line() != (int)location.line - 1)
+		{
+			return false;
+		}
+
+		return iter.ends_line();
+	}
+
+	private void add_diagnostic_at_end(SourceLocation location,
+	                                   Gdk.RGBA       color)
+	{
+		TextIter iter;
+
+		d_buffer.get_iter_at_line(out iter, (int)location.line - 1);
+
+		TextMark mark = d_buffer.create_mark(null, iter, false);
+		d_diagnosticsAtEnd[mark] = color;
+	}
+
+	private void on_diagnostic_updated(DiagnosticSupport diagnostics)
+	{
+		d_scrollbarMarker.clear();
+
+		DiagnosticColors colors;
+
+		colors = new DiagnosticColors(d_scrollbarMarker.scrollbar.get_style_context());
+
+		MapIterator<TextMark, Gdk.RGBA?> it = d_diagnosticsAtEnd.map_iterator();
+
+		while (it.next())
+		{
+			d_buffer.delete_mark(it.get_key());
+		}
+
+		d_diagnosticsAtEnd.clear();
+
+		foreach (Diagnostic d in diagnostics.diagnostics)
+		{
+			Gdk.RGBA color = colors[d.severity];
+
+			foreach (SourceRange range in d.ranges)
+			{
+				d_scrollbarMarker.add(range, color);
+
+				if (range.start.line == range.end.line &&
+				    range.start.column == range.end.column)
+				{
+					if (diagnostic_is_at_end(range.start))
+					{
+						add_diagnostic_at_end(range.start, color);
+					}
+				}
+			}
+
+			d_scrollbarMarker.add({d.location, d.location}, color);
+
+			if (diagnostic_is_at_end(d.location))
+			{
+				add_diagnostic_at_end(d.location, color);
+			}
+		}
+	}
+
 	private void on_notify_buffer()
 	{
 		disconnect_buffer();
@@ -225,6 +332,95 @@ class View
 	private void on_notify_language()
 	{
 		update_backend();
+	}
+
+	private bool on_view_draw(Cairo.Context ctx)
+	{
+		if (d_diagnosticsAtEnd.size == 0)
+		{
+			return false;
+		}
+
+		var window = d_view.get_window(Gtk.TextWindowType.TEXT);
+
+		if (!Gtk.cairo_should_draw_window(ctx, window))
+		{
+			return false;
+		}
+
+		MapIterator<TextMark, Gdk.RGBA?> it = d_diagnosticsAtEnd.map_iterator();
+
+		Gtk.cairo_transform_to_window(ctx, d_view, window);
+		Gdk.Rectangle rect;
+		TextIter start;
+		TextIter end;
+
+		d_view.get_visible_rect(out rect);
+		d_view.get_line_at_y(out start, rect.y, null);
+		start.backward_line();
+
+		d_view.get_line_at_y(out end, rect.y + rect.height, null);
+		end.forward_line();
+
+		int window_width = window.get_width();
+
+		while (it.next())
+		{
+			TextIter iter;
+
+			d_view.buffer.get_iter_at_mark(out iter, it.get_key());
+
+			if (!iter.in_range(start, end))
+			{
+				continue;
+			}
+
+			if (!iter.ends_line())
+			{
+				if (!iter.forward_visible_line())
+				{
+					continue;
+				}
+
+				iter.backward_char();
+			}
+
+			int y;
+			int height;
+
+			int wy;
+			int wx;
+
+			Gdk.Rectangle irect;
+
+			d_view.get_line_yrange(iter, out y, out height);
+			d_view.get_iter_location(iter, out irect);
+
+			d_view.buffer_to_window_coords(Gtk.TextWindowType.TEXT,
+			                               irect.x + irect.width,
+			                               y,
+			                               out wx,
+			                               out wy);
+
+			ctx.rectangle(wx,
+			              wy,
+			              window_width - wx,
+			              height);
+
+			Gdk.cairo_set_source_rgba(ctx, it.get_value());
+			ctx.fill();
+		}
+
+		return false;
+	}
+
+	private void on_buffer_mark_set(TextIter location, TextMark mark)
+	{
+		if (d_diagnosticsAtEnd.has_key(mark) && !location.starts_line())
+		{
+			location.set_line_offset(0);
+			d_buffer.move_mark(mark, location);
+		}
 	}
 }
 

@@ -6,32 +6,39 @@ INCLUDES =				\
 plugindir = $(GEDIT_PLUGIN_DIR)
 plugin_LTLIBRARIES = libgcp.la
 
-SOURCES = \
+vala_sources = \
 	gcp.vala \
 	gcp-source-location.vala \
 	gcp-source-range.vala \
 	gcp-view.vala \
 	gcp-document.vala \
+	gcp-scrollbar-marker.vala \
 	gcp-backend.vala \
 	gcp-backend-manager.vala \
+	gcp-unsaved-file.vala \
 	gcp-symbol-browser.vala \
 	gcp-symbol-browser-support.vala \
 	gcp-diagnostic.vala \
+	gcp-diagnostic-colors.vala \
+	gcp-diagnostic-tags.vala \
 	gcp-diagnostic-support.vala \
 	gcp-c-backend.vala \
 	gcp-c-document.vala \
 	gcp-c-compile-args.vala \
-	gcp-unsaved-file.vala \
 	gcp-c-translation-unit.vala
 
-BUILT_SOURCES = $(SOURCES:.vala=.c)
+SOURCES = \
+	$(vala_sources) \
+	gcp-utils-c.c
+
+BUILT_SOURCES = $(vala_sources:.vala=.c)
 
 libgcp_la_SOURCES = $(SOURCES)
 
 libgcp_la_CFLAGS = -Wimplicit-function-declaration -Wno-unused-value -Wno-ignored-qualifiers -Wno-conversion $(GCP_CFLAGS) $(GEDIT_CFLAGS)
 libgcp_la_LDFLAGS = -module -shared -avoid-version $(GCP_LIBS) $(CLANG_LIBS) $(GEDIT_LIBS)
 
-valapkgs = gio-2.0 gee-1.0 clang
+valapkgs = gio-2.0 gee-1.0 clang gcp
 
 if WITH_GEDIT2
 valapkgs += gedit-2.20

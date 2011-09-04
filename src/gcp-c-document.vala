@@ -5,9 +5,11 @@ namespace Gcp.C
 
 class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 {
+	public DiagnosticTags tags {get; set;}
+
 	private TranslationUnit d_tu;
 	private SymbolBrowser d_symbols;
-	private ArrayList<Diagnostic>? d_diagnostics;
+	private Diagnostic[] d_diagnostics;
 
 	public Document(Gedit.Document document)
 	{
@@ -15,6 +17,7 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 
 		d_tu = new TranslationUnit();
 		d_symbols = new SymbolBrowser();
+		d_diagnostics = new Diagnostic[] {};
 
 		d_tu.update.connect(on_tu_update);
 	}
@@ -27,27 +30,9 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 		}
 	}
 
-	public uint num_diagnostics
+	public Diagnostic[] diagnostics
 	{
-		get
-		{
-			return d_diagnostics != null ? d_diagnostics.size : 0;
-		}
-	}
-
-	public Diagnostic? diagnostic(uint i)
-	{
-		if (d_diagnostics == null)
-		{
-			return null;
-		}
-
-		if (i >= d_diagnostics.size)
-		{
-			return null;
-		}
-
-		return d_diagnostics[(int)i];
+		get { return d_diagnostics; }
 	}
 
 	public TranslationUnit translation_unit
@@ -105,39 +90,55 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 	{
 		/* Refill the symbol browser */
 		d_tu.with_translation_unit((tu) => {
-			d_diagnostics = new ArrayList<Diagnostic>();
+			ArrayList<Diagnostic> diags = new ArrayList<Diagnostic>();
 
 			for (uint i = 0; i < tu.num_diagnostics; ++i)
 			{
 				CX.Diagnostic d = tu.get_diagnostic(i);
 
 				Diagnostic.Severity severity = translate_severity(d.severity);
-				SourceRange[] ranges;
+				SourceRange[] ranges = new SourceRange[d.num_ranges];
 
-				if (d.num_ranges == 0)
-				{
-					SourceLocation loc = translate_source_location(d.location);
-
-					SourceRange range = SourceRange() {start = loc, end = loc};
-					++range.end.column;
-
-					ranges = new SourceRange[] {range};
-				}
-				else
-				{
-					ranges = new SourceRange[d.num_ranges];
-				}
+				var location = translate_source_location(d.location);
 
 				for (uint j = 0; j < d.num_ranges; ++j)
 				{
 					ranges[j] = translate_source_range(d.get_range(j));
 				}
 
-				d_diagnostics.add(new Diagnostic(severity, ranges, d.spelling.str()));
+				Diagnostic.Fixit[] fixits = new Diagnostic.Fixit[d.num_fixits];
+
+				for (uint j = 0; j < d.num_fixits; ++j)
+				{
+					CX.SourceRange range;
+					string repl = d.get_fixit(j, out range).str();
+
+					fixits[j] = {translate_source_range(range), repl};
+				}
+
+				diags.add(new Diagnostic(severity,
+				                         location,
+				                         ranges,
+				                         fixits,
+				                         d.spelling.str()));
 			}
+
+			diags.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
+			d_diagnostics = diags.to_array();
 
 			updated();
 		});
+	}
+
+	private int sort_on_severity(Diagnostic? a, Diagnostic? b)
+	{
+		if (a.severity == b.severity)
+		{
+			return 0;
+		}
+
+		// Higer priorities last
+		return a.severity < b.severity ? -1 : 1;
 	}
 }
 
