@@ -122,7 +122,7 @@ class ScrollbarMarker
 
 		double scale = (double)rect.height / (double)d_maxline;
 
-		double y = Math.round(rect.y + range.start.line * scale - 0.5) + 0.5;
+		double y = Math.round(rect.y + (range.start.line - 1) * scale - 0.5) + 0.5;
 		double dy = Math.fmax(1, Math.round(height * scale));
 
 		Gdk.cairo_set_source_rgba(ctx, marker.color);
