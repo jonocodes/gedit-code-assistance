@@ -82,7 +82,7 @@ class ScrollbarMarker
 		d_border = UtilsC.get_style_property_int(ctx, "trough-border");
 		d_width = UtilsC.get_style_property_int(ctx, "slider-width");
 
-		d_spacing = stepper_size + stepper_spacing;
+		d_spacing = stepper_size + stepper_spacing + 2;
 	}
 
 	private void on_style_updated()
