@@ -81,7 +81,7 @@ class Diagnostic
 		get { return d_message; }
 	}
 
-	public string to_markup()
+	public string to_markup(bool include_severity = true)
 	{
 		string[] r = new string[d_ranges.length];
 
@@ -90,9 +90,23 @@ class Diagnostic
 			r[i] = d_ranges[i].to_string();
 		}
 
-		return "<b>%s</b> %s: %s".printf(d_severity.to_string(),
-		                                 string.joinv(", ", r),
-		                                 Markup.escape_text(d_message));
+		string loc = "%s".printf(d_location.to_string());
+
+		if (r.length > 0)
+		{
+			loc = "%s at %s".printf(string.joinv(", ", r), loc);
+		}
+
+		if (include_severity)
+		{
+			return "<b>%s</b> %s: %s".printf(d_severity.to_string(),
+			                                 loc,
+			                                 Markup.escape_text(d_message));
+		}
+		else
+		{
+			return "%s: %s".printf(loc, Markup.escape_text(d_message));
+		}
 	}
 }
 

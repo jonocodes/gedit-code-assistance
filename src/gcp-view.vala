@@ -129,7 +129,7 @@ class View
 
 		for (int i = 0; i < diagnostics.length; ++i)
 		{
-			markup[i] = diagnostics[i].to_markup();
+			markup[i] = diagnostics[i].to_markup(false);
 		}
 
 		return string.joinv("\n", markup);
@@ -153,7 +153,7 @@ class View
 		}
 		else
 		{
-			return diagnostic.to_markup();
+			return diagnostic.to_markup(false);
 		}
 	}
 
