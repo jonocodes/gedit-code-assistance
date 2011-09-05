@@ -248,10 +248,10 @@ class View
 	{
 		TextIter iter;
 
-		d_buffer.get_iter_at_line(out iter, (int)location.line - 1);
-		iter.set_line_offset((int)location.column - 1);
+		d_buffer.get_iter_at_line(out iter, location.line - 1);
+		iter.forward_chars(location.column - 1);
 
-		if (iter.get_line() != (int)location.line - 1)
+		if (iter.get_line() != location.line - 1)
 		{
 			return false;
 		}
@@ -264,7 +264,7 @@ class View
 	{
 		TextIter iter;
 
-		d_buffer.get_iter_at_line(out iter, (int)location.line - 1);
+		d_buffer.get_iter_at_line(out iter, location.line - 1);
 
 		TextMark mark = d_buffer.create_mark(null, iter, false);
 		d_diagnosticsAtEnd[mark] = color;

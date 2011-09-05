@@ -97,19 +97,26 @@ class Document : GLib.Object
 
 	private bool source_location(SourceLocation location, out TextIter iter)
 	{
-		if (!location.file.equal(d_location))
+		d_document.get_iter_at_line(out iter, location.line - 1);
+
+		if (iter.get_line() != location.line - 1)
 		{
 			return false;
 		}
 
-		d_document.get_iter_at_line(out iter, (int)location.line - 1);
-
-		if (iter.get_line() != (int)location.line - 1)
+		if (location.column > 1)
 		{
-			return false;
-		}
+			if (!iter.forward_chars(location.column - 1))
+			{
+				return false;
+			}
 
-		return iter.forward_chars((int)location.column - 1);
+			return iter.get_line() == location.line - 1;
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 	public bool source_range(SourceRange range, out TextIter start, out TextIter end)
@@ -147,7 +154,10 @@ class Document : GLib.Object
 
 		TextIter m = start;
 
-		m.set_line_offset(0);
+		if (!m.starts_line())
+		{
+			m.set_line_offset(0);
+		}
 
 		while (category != null && m.compare(end) <= 0)
 		{
@@ -182,6 +192,7 @@ class Document : GLib.Object
 	{
 		TextIter start;
 		TextIter end;
+
 
 		DiagnosticSupport sup = this as DiagnosticSupport;
 		TextTag? tag = sup.tags[diagnostic.severity];
