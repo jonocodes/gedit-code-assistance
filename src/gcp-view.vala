@@ -305,7 +305,7 @@ class View
 				}
 			}
 
-			d_scrollbarMarker.add({d.location, d.location}, color);
+			d_scrollbarMarker.add(new SourceRange(d.location, d.location), color);
 
 			if (diagnostic_is_at_end(d.location))
 			{
