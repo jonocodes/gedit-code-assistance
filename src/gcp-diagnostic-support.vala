@@ -17,16 +17,19 @@ interface DiagnosticSupport : Document
 
 		foreach (Diagnostic d in diagnostics)
 		{
+			bool foundit = false;
+
 			foreach (SourceRange r in d.ranges)
 			{
 				if (r.contains(line, column))
 				{
 					ret.add(d);
-					continue;
+					foundit = true;
+					break;
 				}
 			}
 
-			if (d.location.line == line && d.location.column == column)
+			if (!foundit && d.location.line == line && d.location.column == column)
 			{
 				ret.add(d);
 			}
@@ -41,16 +44,20 @@ interface DiagnosticSupport : Document
 
 		foreach (Diagnostic d in diagnostics)
 		{
+			bool foundit = false;
+
 			foreach (SourceRange r in d.ranges)
 			{
 				if (r.contains_line(line))
 				{
 					ret.add(d);
-					continue;
+					foundit = true;
+
+					break;
 				}
 			}
 
-			if (d.location.line == line)
+			if (!foundit && d.location.line == line)
 			{
 				ret.add(d);
 			}
