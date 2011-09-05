@@ -69,21 +69,17 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 
 		location.get_instantiation(out file, out line, out column, out offset);
 
-		File sfile = File.new_for_path(file.name.str());
+		string? filename = file.name.str();
 
-		return SourceLocation() {
-			file = sfile,
-			line = line,
-			column = column
-		};
+		File? sfile = filename != null ? File.new_for_path(filename) : null;
+
+		return new SourceLocation(sfile, (int)line, (int)column);
 	}
 
 	private SourceRange translate_source_range(CX.SourceRange range)
 	{
-		return SourceRange() {
-			start = translate_source_location(range.start()),
-			end = translate_source_location(range.end())
-		};
+		return new SourceRange(translate_source_location(range.start()),
+		                       translate_source_location(range.end()));
 	}
 
 	private void on_tu_update()
@@ -97,13 +93,27 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 				CX.Diagnostic d = tu.get_diagnostic(i);
 
 				Diagnostic.Severity severity = translate_severity(d.severity);
-				SourceRange[] ranges = new SourceRange[d.num_ranges];
 
-				var location = translate_source_location(d.location);
+				var loc = translate_source_location(d.location);
+
+				if (loc.file == null || !loc.file.equal(location))
+				{
+					continue;
+				}
+
+				LinkedList<SourceRange> ranges = new LinkedList<SourceRange>();
 
 				for (uint j = 0; j < d.num_ranges; ++j)
 				{
-					ranges[j] = translate_source_range(d.get_range(j));
+					SourceRange range = translate_source_range(d.get_range(j));
+
+					if (range.start.file != null &&
+					    range.end.file != null &&
+					    range.start.file.equal(location) &&
+					    range.end.file.equal(location))
+					{
+						ranges.add(range);
+					}
 				}
 
 				Diagnostic.Fixit[] fixits = new Diagnostic.Fixit[d.num_fixits];
@@ -117,8 +127,8 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 				}
 
 				diags.add(new Diagnostic(severity,
-				                         location,
-				                         ranges,
+				                         loc,
+				                         ranges.to_array(),
 				                         fixits,
 				                         d.spelling.str()));
 			}
