@@ -174,15 +174,6 @@ class View
 		uint line = iter.get_line() + 1;
 		uint col = iter.get_line_offset() + 1;
 
-		// Perform a little calculation for end-of-line diagnostics
-		/*Gdk.Rectangle rect;
-		d_view.get_iter_location(iter, out rect);
-
-		if (bx > rect.x + rect.width)
-		{
-			++col;
-		}*/
-
 		DiagnosticSupport diag = d_document as DiagnosticSupport;
 
 		string? s = format_diagnostics(diag.find_at(line, col));
@@ -221,26 +212,26 @@ class View
 				// Error
 				attr = new MarkAttributes();
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-error-symbolic"));
-
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
-
-				d_view.set_mark_attributes(Document.error_mark_category, attr, 0);
+				d_view.set_mark_attributes(Document.error_mark_category,
+				                           attr,
+				                           0);
 
 				// Warning
 				attr = new MarkAttributes();
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-warning-symbolic"));
-
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
-
-				d_view.set_mark_attributes(Document.warning_mark_category, attr, 0);
+				d_view.set_mark_attributes(Document.warning_mark_category,
+				                           attr,
+				                           0);
 
 				// Info
 				attr = new MarkAttributes();
 				attr.set_gicon(new ThemedIcon.with_default_fallbacks("dialog-information-symbolic"));
-
 				attr.query_tooltip_markup.connect(on_diagnostic_tooltip);
-
-				d_view.set_mark_attributes(Document.info_mark_category, attr, 0);
+				d_view.set_mark_attributes(Document.info_mark_category,
+				                           attr,
+				                           0);
 
 				d_view.query_tooltip.connect(on_view_query_tooltip);
 
