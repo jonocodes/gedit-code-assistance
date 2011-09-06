@@ -69,6 +69,19 @@ namespace Gcp
 				col = defcol;
 			}
 
+			double h;
+			double s;
+			double v;
+
+			Gtk.rgb_to_hsv(col.red, col.green, col.blue, out h, out s, out v);
+
+			if (s < 0.5)
+			{
+				col.red *= 0.5;
+				col.blue *= 0.5;
+				col.green *= 0.5;
+			}
+
 			col.alpha *= alpha;
 
 			return col;
