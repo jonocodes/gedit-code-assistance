@@ -8014,7 +8014,9 @@ namespace Gtk {
 	[CCode (cheader_filename = "gtk/gtk.h")]
 	public static void render_slider (Gtk.StyleContext context, Cairo.Context cr, double x, double y, double width, double height, Gtk.Orientation orientation);
 	[CCode (cheader_filename = "gtk/gtk.h")]
-	public static void rgb_to_hsv (double r, double g, double b, double h, double s, double v);
+	public static void rgb_to_hsv (double r, double g, double b, out double h, out double s, out double v);
+	[CCode (cheader_filename = "gtk/gtk.h")]
+	public static void hsv_to_rgb (double h, double s, double v, out double r, out double g, out double b);
 	[CCode (cheader_filename = "gtk/gtk.h")]
 	public static void selection_add_target (Gtk.Widget widget, Gdk.Atom selection, Gdk.Atom target, uint info);
 	[CCode (cheader_filename = "gtk/gtk.h")]
