@@ -52,6 +52,7 @@ class Document : GLib.Object
 		d_document.modified_changed.connect(on_document_modified_changed);
 		d_document.changed.connect(on_document_changed);
 		d_document.notify["location"].connect(on_location_changed);
+		d_document.saved.connect(on_document_saved);
 
 		d_location = null;
 
@@ -84,6 +85,9 @@ class Document : GLib.Object
 	{
 		d_document.modified_changed.disconnect(on_document_modified_changed);
 		d_document.notify["location"].disconnect(on_location_changed);
+
+		d_document.changed.disconnect(on_document_changed);
+		d_document.saved.disconnect(on_document_saved);
 
 		DiagnosticSupport diag = this as DiagnosticSupport;
 
@@ -192,7 +196,6 @@ class Document : GLib.Object
 	{
 		TextIter start;
 		TextIter end;
-
 
 		DiagnosticSupport sup = this as DiagnosticSupport;
 		TextTag? tag = sup.tags[diagnostic.severity];
@@ -313,7 +316,7 @@ class Document : GLib.Object
 		}
 		else
 		{
-			changed();
+			emit_changed();
 		}
 	}
 
@@ -395,6 +398,11 @@ class Document : GLib.Object
 	private void on_location_changed()
 	{
 		update_location();
+	}
+
+	private void on_document_saved()
+	{
+		emit_changed();
 	}
 }
 
