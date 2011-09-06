@@ -361,19 +361,17 @@ class View
 
 			d_view.buffer.get_iter_at_mark(out iter, it.get_key());
 
-			if (!iter.in_range(start, end))
+			if (!iter.in_range(start, end) && !iter.equal(end))
 			{
 				continue;
 			}
 
 			if (!iter.ends_line())
 			{
-				if (!iter.forward_visible_line())
+				if (iter.forward_visible_line())
 				{
-					continue;
+					iter.backward_char();
 				}
-
-				iter.backward_char();
 			}
 
 			int y;
