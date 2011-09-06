@@ -260,7 +260,22 @@ namespace Gcp.C
 				"Could not find make target for %s".printf(basen));
 		}
 
-		private string[] filter_flags(string[] args)
+		private string resolve_relative(File   makefile,
+		                                File   source,
+		                                string path)
+		{
+			if (Path.is_absolute(path))
+			{
+				return path;
+			}
+
+			File ret = makefile.get_parent().resolve_relative_path(path);
+			return ret.get_path();
+		}
+
+		private string[] filter_flags(File     makefile,
+		                              File     source,
+		                              string[] args)
 		{
 			bool inexpand = false;
 			int i = 0;
@@ -299,6 +314,19 @@ namespace Gcp.C
 				switch (a[1])
 				{
 					case 'I':
+						// Resolve relative arguments here
+						if (a[2] != '\0')
+						{
+							ret.add("-I");
+							ret.add(resolve_relative(makefile, source, a.substring(2)));
+						}
+						else if (i < args.length)
+						{
+							ret.add("-I");
+							ret.add(resolve_relative(makefile, source, args[i]));
+							++i;
+						}
+					break;
 					case 'D':
 					case 'f':
 					case 'W':
@@ -306,7 +334,7 @@ namespace Gcp.C
 						ret.add(a);
 
 						// If it has no embedded argument, then also add the argument
-						if (a[2] != '\0' && i < args.length)
+						if (a[2] == '\0' && i < args.length)
 						{
 							ret.add(args[i]);
 							++i;
@@ -366,7 +394,7 @@ namespace Gcp.C
 			Shell.parse_argv(outstr.substring(idx + fakecc.length), out retargs);
 
 			/* Copy only some of the flags that we are actually interested in */
-			return filter_flags(retargs);
+			return filter_flags(makefile, source, retargs);
 		}
 
 		private void on_makefile_changed(Makefile makefile)
