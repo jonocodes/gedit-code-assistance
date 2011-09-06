@@ -22,6 +22,7 @@ class SourceLocation
 	public int line
 	{
 		get { return d_line; }
+		set { d_line = value; }
 	}
 
 	public int column
