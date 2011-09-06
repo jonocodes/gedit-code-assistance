@@ -110,7 +110,12 @@ class Document : GLib.Object
 
 		if (location.column > 1)
 		{
-			if (!iter.forward_chars(location.column - 1))
+			TextIter enditer;
+
+			d_document.get_end_iter(out enditer);
+
+			if (!iter.forward_chars(location.column - 1) &&
+			    !iter.equal(enditer))
 			{
 				return false;
 			}
