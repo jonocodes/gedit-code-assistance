@@ -82,6 +82,14 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 		                       translate_source_location(range.end()));
 	}
 
+	private void clip_location(SourceLocation location)
+	{
+		if (location.line > document.get_line_count())
+		{
+			location.line = document.get_line_count();
+		}
+	}
+
 	private void on_tu_update()
 	{
 		/* Refill the symbol browser */
@@ -101,6 +109,8 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 					continue;
 				}
 
+				clip_location(loc);
+
 				LinkedList<SourceRange> ranges = new LinkedList<SourceRange>();
 
 				for (uint j = 0; j < d.num_ranges; ++j)
@@ -112,6 +122,9 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 					    range.start.file.equal(location) &&
 					    range.end.file.equal(location))
 					{
+						clip_location(range.start);
+						clip_location(range.end);
+
 						ranges.add(range);
 					}
 				}
@@ -123,7 +136,18 @@ class Document : Gcp.Document, SymbolBrowserSupport, DiagnosticSupport
 					CX.SourceRange range;
 					string repl = d.get_fixit(j, out range).str();
 
-					fixits[j] = {translate_source_range(range), repl};
+					SourceRange r = translate_source_range(range);
+
+					if (r.start.file != null &&
+					    r.end.file != null &&
+					    r.start.file.equal(location) &&
+					    r.end.file.equal(location))
+					{
+						clip_location(r.start);
+						clip_location(r.end);
+
+						fixits[j] = {r, repl};
+					}
 				}
 
 				diags.add(new Diagnostic(severity,
