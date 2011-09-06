@@ -13,17 +13,17 @@ namespace Gcp
 			d_errorColor = update_color(context,
 			             "error_bg_color",
 			             {1, 0, 0, 1},
-			             0.4);
+			             0.5);
 
 			d_warningColor = update_color(context,
 			             "warning_bg_color",
 			             {1, 0.5, 0, 1},
-			             0.4);
+			             0.5);
 
 			d_infoColor = update_color(context,
 			             "info_bg_color",
 			             {0, 0, 1, 1},
-			             0.4);
+			             0.5);
 		}
 
 		public Gdk.RGBA? get(Diagnostic.Severity severity)
