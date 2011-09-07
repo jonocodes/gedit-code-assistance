@@ -42,7 +42,11 @@ GCP_LIBS="${GCP_LIBS}"
 AC_SUBST(GCP_LIBS)
 AC_SUBST(GCP_CFLAGS)
 
-AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [AC_MSG_ERROR([could not find llvm-config])])
+AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [])
+
+if test "x$LLVM_CONFIG" = "x"; then
+	AC_MSG_ERROR([could not find llvm-config])
+fi
 
 dnl find out the libdir of llvm
 LLVM_LIBS=$($LLVM_CONFIG --ldflags)
