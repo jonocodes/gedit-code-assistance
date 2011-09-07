@@ -42,19 +42,41 @@ GCP_LIBS="${GCP_LIBS}"
 AC_SUBST(GCP_LIBS)
 AC_SUBST(GCP_CFLAGS)
 
+AC_PATH_PROG([LLVM_CONFIG], [llvm-config], AC_MSG_ERROR([could not find llvm-config]))
+
+dnl find out the libdir of llvm
+LLVM_LIBS=$($LLVM_CONFIG --ldflags)
+LLVM_CFLAGS=$($LLVM_CONFIG --cflags)
+
 dnl ================================================================
 dnl Find clang headers and lib
 dnl ================================================================
+
+OLDCFLAGS="$CFLAGS"
+OLDLDFLAGS="$LDFLAGS"
+
+CFLAGS="$OLDCFLAGS $LLVM_CFLAGS"
+LDFLAGS="$OLDLDFLAGS $LLVM_LIBS"
+
 AC_CHECK_LIB([clang],
              [clang_createIndex],
-             [CLANG_LIBS="-lclang"],
+             [],
              [AC_MSG_ERROR([could not find clang library])])
 
 AC_CHECK_HEADER([clang-c/Index.h],
                 [],
                 [AC_MSG_ERROR([could not find clang header Index.h])])
 
-AC_SUBST(CLANG_LIBS)
+LLVM_LIBS="$LLVM_LIBS -lclang"
+
+AC_SUBST(LLVM_CFLAGS)
+AC_SUBST(LLVM_LIBS)
+
+CFLAGS="$OLDCFLAGS"
+LDFLAGS="$OLDLDFLAGS"
+
+LLVM_VERSION=$($LLVM_CONFIG --version)
+AC_DEFINE_UNQUOTED([LLVM_VERSION], "$LLVM_VERSION", [LLVM version])
 
 dnl ================================================================
 dnl Find gedit
@@ -124,5 +146,6 @@ Configuration:
 	valac:			$VALAC
 	gedit version:          $with_gedit
 	gedit plugin dir:       $GEDIT_PLUGIN_DIR
+	llvm version:           $LLVM_VERSION
 "
 
