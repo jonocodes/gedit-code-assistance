@@ -1,7 +1,11 @@
-AC_INIT(gedit-code-plugin, 1.0)
+AC_PREREQ(2.63.2)
 
-AC_PREREQ(2.62)
-AM_INIT_AUTOMAKE([-Wno-portability])
+m4_define(gedit_code_plugin_major_version, 0)
+m4_define(gedit_code_plugin_minor_version, 0)
+m4_define(gedit_code_plugin_micro_version, 1)
+m4_define(gedit_code_plugin_version, gedit_code_plugin_major_version.gedit_code_plugin_minor_version.gedit_code_plugin_micro_version)
+
+AC_INIT([gedit-code-plugin],[gedit_code_plugin_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=gedit],[gedit],[http://projects.gnome.org/gedit/])
 
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
@@ -13,8 +17,9 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_LIBTOOL
 
-AM_MAINTAINER_MODE
-m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability])
+AM_MAINTAINER_MODE([enable])
+AM_SILENT_RULES([yes])
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
