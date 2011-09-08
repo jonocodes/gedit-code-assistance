@@ -34,6 +34,8 @@ class View
 	private DiagnosticTags d_tags;
 	private ScrollbarMarker d_scrollbarMarker;
 	private HashMap<TextMark, Gdk.RGBA?> d_diagnosticsAtEnd;
+	private Diagnostic[] d_cursorDiagnostics;
+	private DiagnosticMessage? d_cursorDiagnosticMessage;
 
 	public View(Gedit.View view)
 	{
@@ -128,6 +130,8 @@ class View
 			{
 				d_view.query_tooltip.disconnect(on_view_query_tooltip);
 				d_view.set_show_line_marks(false);
+
+				d_buffer.cursor_moved.disconnect(on_cursor_moved);
 			}
 
 			d_backend.unregister(d_document);
@@ -184,7 +188,11 @@ class View
 		int bx;
 		int by;
 
-		d_view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y, out bx, out by);
+		d_view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,
+		                               x,
+		                               y,
+		                               out bx,
+		                               out by);
 
 		TextIter iter;
 	
@@ -255,6 +263,8 @@ class View
 				d_view.query_tooltip.connect(on_view_query_tooltip);
 
 				d_view.set_show_line_marks(true);
+
+				d_buffer.cursor_moved.connect(on_cursor_moved);
 			}
 		}
 		else
@@ -297,6 +307,11 @@ class View
 
 		colors = new DiagnosticColors(d_scrollbarMarker.scrollbar.get_style_context());
 
+		DiagnosticColors mixed;
+
+		mixed = new DiagnosticColors(d_scrollbarMarker.scrollbar.get_style_context());
+		mixed.mix_in_widget(d_view);
+
 		MapIterator<TextMark, Gdk.RGBA?> it = d_diagnosticsAtEnd.map_iterator();
 
 		while (it.next())
@@ -309,6 +324,7 @@ class View
 		foreach (Diagnostic d in diagnostics.diagnostics)
 		{
 			Gdk.RGBA color = colors[d.severity];
+			Gdk.RGBA mix = mixed[d.severity];
 
 			foreach (SourceRange range in d.ranges)
 			{
@@ -319,7 +335,7 @@ class View
 				{
 					if (diagnostic_is_at_end(range.start))
 					{
-						add_diagnostic_at_end(range.start, color);
+						add_diagnostic_at_end(range.start, mix);
 					}
 				}
 			}
@@ -328,7 +344,7 @@ class View
 
 			if (diagnostic_is_at_end(d.location))
 			{
-				add_diagnostic_at_end(d.location, color);
+				add_diagnostic_at_end(d.location, mix);
 			}
 		}
 	}
@@ -429,6 +445,73 @@ class View
 			location.set_line_offset(0);
 			d_buffer.move_mark(mark, location);
 		}
+	}
+
+	private bool same_diagnostics(Diagnostic[]? first, Diagnostic[]? second)
+	{
+		if (first == second)
+		{
+			return true;
+		}
+
+		if (first == null || second == null)
+		{
+			return false;
+		}
+
+		if (first.length != second.length)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < first.length; ++i)
+		{
+			if (first[i] != second[i])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private void on_cursor_moved()
+	{
+		// Check if we moved in or out of a diagnostic
+		DiagnosticSupport? diag = d_document as DiagnosticSupport;
+
+		if (diag == null)
+		{
+			return;
+		}
+
+		TextIter iter;
+
+		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
+
+		uint line = (uint)iter.get_line();
+		uint column = (uint)iter.get_line_offset();
+
+		Diagnostic[] diagnostics = diag.find_at(line + 1, column + 1);
+
+		if (same_diagnostics(diagnostics, d_cursorDiagnostics))
+		{
+			return;
+		}
+
+		if (d_cursorDiagnosticMessage != null)
+		{
+			d_cursorDiagnosticMessage.destroy();
+		}
+
+		d_cursorDiagnosticMessage = new DiagnosticMessage(d_view, diagnostics);
+
+		d_cursorDiagnosticMessage.destroy.connect(() => {
+			d_cursorDiagnosticMessage = null;
+		});
+
+		d_cursorDiagnosticMessage.show();
+		d_cursorDiagnostics = diagnostics;
 	}
 }
 

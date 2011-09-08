@@ -1,0 +1,348 @@
+using Gtk;
+using Gee;
+
+namespace Gcp
+{
+
+class DiagnosticMessage : EventBox
+{
+	private Diagnostic[] d_diagnostics;
+	private Box? d_vbox;
+	private DiagnosticColors d_colors;
+	private unowned GtkSource.View? d_view;
+	private Diagnostic.Severity d_rulingSeverity;
+	private bool d_inserted;
+	private int d_width;
+	private int d_height;
+	private bool d_updating;
+
+	public DiagnosticMessage(GtkSource.View view, Diagnostic[] diagnostics)
+	{
+		d_diagnostics = diagnostics;
+		d_view = view;
+
+		visible_window = true;
+		app_paintable = true;
+
+		d_colors = new DiagnosticColors(get_style_context());
+		d_view.style_updated.connect(on_view_style_updated);
+
+		d_view.buffer.notify["style-scheme"].connect(on_style_scheme_changed);
+
+		d_view.key_press_event.connect(on_view_key_press);
+
+
+		d_inserted = false;
+
+		update();
+	}
+
+	private bool on_view_key_press(Gdk.EventKey event)
+	{
+		if (event.keyval == Gdk.keyval_from_name("Escape"))
+		{
+			destroy();
+			return true;
+		}
+
+		return false;
+	}
+
+	private void on_style_scheme_changed()
+	{
+		style_changed();
+	}
+
+	private void style_changed()
+	{
+		d_colors = new DiagnosticColors(get_style_context());
+
+		if (d_view != null)
+		{
+			d_colors.mix_in_widget(d_view);
+		}
+
+		update();
+	}
+
+	private void on_view_style_updated()
+	{
+		style_changed();
+	}
+
+	protected override void destroy()
+	{
+		if (d_view != null)
+		{
+			d_view.style_updated.disconnect(on_view_style_updated);
+			d_view.buffer.notify["style-scheme"].disconnect(on_style_scheme_changed);
+
+			d_view.key_press_event.disconnect(on_view_key_press);
+		}
+
+		base.destroy();
+	}
+
+	protected override void style_updated()
+	{
+		base.style_updated();
+
+		style_changed();
+	}
+
+	private void update()
+	{
+		if (d_updating)
+		{
+			return;
+		}
+
+		if (d_vbox != null)
+		{
+			d_vbox.destroy();
+			d_vbox = null;
+		}
+
+		if (d_view == null)
+		{
+			return;
+		}
+
+		d_updating = true;
+
+		d_vbox = new Box(Orientation.VERTICAL, 1);
+		d_vbox.show();
+		d_vbox.border_width = 1;
+
+		StyleContext ctx = d_view.get_style_context();
+		ctx.save();
+
+		ctx.add_class(STYLE_CLASS_VIEW);
+		Gdk.RGBA color;
+		ctx.get_color(StateFlags.NORMAL, out color);
+
+		ctx.restore();
+
+		foreach (Diagnostic d in d_diagnostics)
+		{
+			Label label = new Label(d.message);
+			label.show();
+
+			label.override_color(StateFlags.NORMAL, color);
+
+			label.halign = Align.START;
+			label.valign = Align.CENTER;
+			label.wrap = true;
+
+			d_vbox.pack_start(label, false, true, 0);
+		}
+
+		add(d_vbox);
+		show();
+
+		d_rulingSeverity = diagnostics_ruling_severity;
+
+		reposition();
+
+		d_updating = false;
+	}
+
+	public Diagnostic[] diagnostics
+	{
+		get
+		{
+			return d_diagnostics;
+		}
+		set
+		{
+			d_diagnostics = value;
+
+			update();
+		}
+	}
+
+	private Diagnostic.Severity diagnostics_ruling_severity
+	{
+		get
+		{
+			Diagnostic.Severity severity = Diagnostic.Severity.NONE;
+			bool first = true;
+
+			foreach (Diagnostic d in d_diagnostics)
+			{
+				if (first || d.severity > severity)
+				{
+					severity = d.severity;
+				}
+
+				first = false;
+			}
+
+			return severity;
+		}
+	}
+
+	private void expand_range(ExpandRange topx,
+	                          ExpandRange bottomx,
+	                          ExpandRange y,
+	                          SourceLocation location)
+	{
+		Gdk.Rectangle rect;
+
+		location.buffer_coordinates(d_view, out rect);
+
+		if (rect.y < y.min)
+		{
+			bottomx.reset();
+		}
+
+		if (rect.y + rect.height > y.max)
+		{
+			topx.reset();
+		}
+
+		y.add(rect.y);
+		y.add(rect.y + rect.height);
+
+		if (rect.y == y.min)
+		{
+			topx.add(rect.x);
+			topx.add(rect.x + rect.width);
+		}
+
+		if (rect.y == y.max)
+		{
+			bottomx.add(rect.x);
+			bottomx.add(rect.x + rect.width);
+		}
+	}
+
+	public void reposition()
+	{
+		ExpandRange topx = new ExpandRange();
+		ExpandRange bottomx = new ExpandRange();
+		ExpandRange y = new ExpandRange();
+
+		foreach (Diagnostic d in d_diagnostics)
+		{
+			foreach (SourceRange r in d.ranges)
+			{
+				expand_range(topx, bottomx, y, r.start);
+				expand_range(topx, bottomx, y, r.end);
+			}
+
+			expand_range(topx, bottomx, y, d.location);
+		}
+
+		// Position the message depending on where we can find the largest
+		// space with the message aligned on the range.
+
+		// 1) Find whether it's better to show at the top or at the bottom
+		// 2) Align right or left with the boundary of the diagnostic
+		int ymin;
+		int ymax;
+
+		d_view.buffer_to_window_coords(TextWindowType.TEXT, 0, y.min, null, out ymin);
+		d_view.buffer_to_window_coords(TextWindowType.TEXT, 0, y.max, null, out ymax);
+
+		var window = d_view.get_window(TextWindowType.TEXT);
+		int aligny;
+		int alignyat;
+		ExpandRange xrange;
+
+		if (ymin > window.get_height() - ymax)
+		{
+			// Show above
+			aligny = 1;
+			alignyat = ymin;
+			xrange = topx;
+		}
+		else
+		{
+			// Show below
+			aligny = 0;
+			alignyat = ymax;
+			xrange = bottomx;
+		}
+
+		// Check whether to align on right or left boundary
+		int xmin;
+		int xmax;
+
+		d_view.buffer_to_window_coords(TextWindowType.TEXT, xrange.min, 0, out xmin, null);
+		d_view.buffer_to_window_coords(TextWindowType.TEXT, xrange.max, 0, out xmax, null);
+
+		int xc;
+		int width;
+
+		if (window.get_width() - xmin > xmax)
+		{
+			// Align on xmin to the right
+			xc = xmin;
+			width = window.get_width() - xmin;
+		}
+		else
+		{
+			// Align on 0 to xmax
+			xc = 0;
+			width = xmax;
+		}
+
+		if (!d_inserted)
+		{
+			d_view.add_child_in_window(this, TextWindowType.TEXT, 0, 0);
+		}
+
+		base.get_preferred_height_for_width(width, out d_height, null);
+		d_width = width;
+
+		int yc = alignyat - d_height * aligny;
+
+		d_view.move_child(this, xc, yc);
+		d_inserted = true;
+
+		queue_resize();
+	}
+
+	protected override SizeRequestMode get_request_mode()
+	{
+		return SizeRequestMode.HEIGHT_FOR_WIDTH;
+	}
+
+	protected override void get_preferred_width(out int minimum_width, out int natural_width)
+	{
+		minimum_width = d_width;
+		natural_width = d_width;
+	}
+
+	protected override void get_preferred_height_for_width(int width, out int minimum_height, out int natural_height)
+	{
+		minimum_height = d_height;
+		natural_height = d_height;
+	}
+
+	protected override bool draw(Cairo.Context context)
+	{
+		Allocation alloc;
+
+		get_allocation(out alloc);
+
+		Gdk.RGBA? color;
+		color = d_colors[d_rulingSeverity];
+
+		if (color != null)
+		{
+			context.rectangle(0, 0, alloc.width, alloc.height);
+			context.set_source_rgb(color.red, color.green, color.blue);
+			context.fill();
+		}
+
+		base.draw(context);
+
+		return false;
+	}
+}
+
+}
+
+/* vi:ex:ts=4 */

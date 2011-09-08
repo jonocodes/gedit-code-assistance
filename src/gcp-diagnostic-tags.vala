@@ -65,41 +65,10 @@ namespace Gcp
 		                        string name,
 		                        Gdk.RGBA col)
 		{
-			StyleContext ctx = d_view.get_style_context();
-
-			Gdk.RGBA mixed = col;
-
-			if (mixed.alpha < 1)
-			{
-				Gdk.RGBA dest;
-				Gdk.RGBA source;
-
-				source = col;
-
-				ctx.save();
-				ctx.add_class(Gtk.STYLE_CLASS_VIEW);
-
-				ctx.get_background_color(Gtk.StateFlags.NORMAL, out dest);
-
-				ctx.restore();
-
-				// Alpha compositing
-				mixed.alpha = source.alpha + dest.alpha * (1 - source.alpha);
-
-				mixed.red = (source.red * source.alpha +
-				             dest.red * dest.alpha * (1 - source.alpha)) / mixed.alpha;
-
-				mixed.green = (source.green * source.alpha +
-				             dest.green * dest.alpha * (1 - source.alpha)) / mixed.alpha;
-
-				mixed.blue = (source.blue * source.alpha +
-				             dest.blue * dest.alpha * (1 - source.alpha)) / mixed.alpha;
-			}
-
 			Gdk.Color bgcol = Gdk.Color() {
-				red = (ushort)(mixed.red * 65535),
-				green = (ushort)(mixed.green * 65535),
-				blue = (ushort)(mixed.blue * 65535)
+				red = (ushort)(col.red * 65535),
+				green = (ushort)(col.green * 65535),
+				blue = (ushort)(col.blue * 65535)
 			};
 
 			ensure_tag(ref tag, name);
@@ -113,6 +82,7 @@ namespace Gcp
 			DiagnosticColors colors;
 
 			colors = new DiagnosticColors(d_view.get_style_context());
+			colors.mix_in_widget(d_view);
 
 			update_tag(ref d_infoTag,
 			           "Gcp.Info",

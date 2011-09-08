@@ -48,7 +48,7 @@ interface DiagnosticSupport : Document
 				}
 			}
 
-			if (!foundit && d.location.line == line && d.location.column == column)
+			if (!foundit && d.location.line == line && (d.location.column == column || d.location.column == column - 1))
 			{
 				ret.add(d);
 			}

@@ -45,6 +45,65 @@ namespace Gcp
 			             0.5);
 		}
 
+		private Gdk.RGBA mix_colors(Gdk.RGBA source, Gdk.RGBA dest)
+		{
+			Gdk.RGBA mixed = {0, 0, 0, 0};
+
+			mixed.alpha = source.alpha + dest.alpha * (1 - source.alpha);
+
+			mixed.red = (source.red * source.alpha +
+			             dest.red * dest.alpha * (1 - source.alpha)) / mixed.alpha;
+
+			mixed.green = (source.green * source.alpha +
+			             dest.green * dest.alpha * (1 - source.alpha)) / mixed.alpha;
+
+			mixed.blue = (source.blue * source.alpha +
+			             dest.blue * dest.alpha * (1 - source.alpha)) / mixed.alpha;
+
+			return mixed;
+		}
+
+		public void mix_in_widget(Widget widget)
+		{
+			StyleContext ctx = widget.get_style_context();
+
+			ctx.save();
+			ctx.add_class(STYLE_CLASS_VIEW);
+
+			Gdk.RGBA dest;
+
+			ctx.get_background_color(widget.get_state_flags(), out dest);
+			mix_in_color(widget, dest);
+
+			ctx.restore();
+		}
+
+		public void mix_in_color(Widget widget, Gdk.RGBA dest)
+		{
+			StyleContext ctx = widget.get_style_context();
+
+			ctx.save();
+
+			ctx.add_class(STYLE_CLASS_VIEW);
+
+			d_errorColor = mix_colors(update_color(ctx,
+			                                       "error_bg_color",
+			                                       {1, 0, 0, 1},
+			                                       0.5), dest);
+
+			d_warningColor = mix_colors(update_color(ctx,
+			                                         "warning_bg_color",
+			                                         {1, 0.5, 0, 1},
+			                                         0.5), dest);
+
+			d_infoColor = mix_colors(update_color(ctx,
+			                                      "info_bg_color",
+			                                      {0, 0, 1, 1},
+			                                      0.5), dest);
+
+			ctx.restore();
+		}
+
 		public Gdk.RGBA? get(Diagnostic.Severity severity)
 		{
 			switch (severity)

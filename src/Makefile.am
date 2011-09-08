@@ -10,6 +10,7 @@ vala_sources = \
 	gcp.vala \
 	gcp-source-location.vala \
 	gcp-source-range.vala \
+	gcp-expand-range.vala \
 	gcp-view.vala \
 	gcp-document.vala \
 	gcp-scrollbar-marker.vala \
@@ -22,6 +23,7 @@ vala_sources = \
 	gcp-diagnostic-colors.vala \
 	gcp-diagnostic-tags.vala \
 	gcp-diagnostic-support.vala \
+	gcp-diagnostic-message.vala \
 	gcp-c-backend.vala \
 	gcp-c-document.vala \
 	gcp-c-compile-args.vala \

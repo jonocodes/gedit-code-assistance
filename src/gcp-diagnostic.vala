@@ -30,7 +30,8 @@ class Diagnostic
 		INFO,
 		WARNING,
 		ERROR,
-		FATAL;
+		FATAL,
+		NUM;
 
 		public string to_string()
 		{
