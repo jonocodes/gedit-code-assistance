@@ -347,6 +347,8 @@ class View
 				add_diagnostic_at_end(d.location, mix);
 			}
 		}
+
+		update_diagnostic_message();
 	}
 
 	private void on_notify_buffer()
@@ -475,7 +477,7 @@ class View
 		return true;
 	}
 
-	private void on_cursor_moved()
+	private void update_diagnostic_message()
 	{
 		// Check if we moved in or out of a diagnostic
 		DiagnosticSupport? diag = d_document as DiagnosticSupport;
@@ -512,6 +514,11 @@ class View
 
 		d_cursorDiagnosticMessage.show();
 		d_cursorDiagnostics = diagnostics;
+	}
+
+	private void on_cursor_moved()
+	{
+		update_diagnostic_message();
 	}
 }
 
