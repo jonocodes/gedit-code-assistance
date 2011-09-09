@@ -92,7 +92,7 @@ dnl Find gedit
 dnl ================================================================
 AC_ARG_WITH([gedit],
             AS_HELP_STRING([--with-gedit=[2/3/auto]],[gedit version to compile for (default: auto)]),
-            [with_gedit=$enableval],
+            [with_gedit=$withval],
             [with_gedit=auto])
 
 if test "x$with_gedit" = "xauto"; then
