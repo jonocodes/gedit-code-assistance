@@ -32,7 +32,7 @@ interface DiagnosticSupport : Document
 
 	public Diagnostic[] find_at(uint line, uint column)
 	{
-		LinkedList<Diagnostic> ret = new LinkedList<Diagnostic>();
+		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
 
 		foreach (Diagnostic d in diagnostics)
 		{
@@ -54,12 +54,25 @@ interface DiagnosticSupport : Document
 			}
 		}
 
+		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
+
 		return ret.to_array();
+	}
+
+	private int sort_on_severity(Diagnostic? a, Diagnostic? b)
+	{
+		if (a.severity == b.severity)
+		{
+			return 0;
+		}
+
+		// Higer priorities last
+		return a.severity < b.severity ? -1 : 1;
 	}
 
 	public Diagnostic[] find_at_line(uint line)
 	{
-		LinkedList<Diagnostic> ret = new LinkedList<Diagnostic>();
+		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
 
 		foreach (Diagnostic d in diagnostics)
 		{
@@ -81,6 +94,8 @@ interface DiagnosticSupport : Document
 				ret.add(d);
 			}
 		}
+
+		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
 
 		return ret.to_array();
 	}
