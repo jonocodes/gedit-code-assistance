@@ -8,7 +8,7 @@ plugin_LTLIBRARIES = libgcp.la
 
 vala_sources = \
 	gcp.vala \
-	gcp-plugin3.vala \
+	gcp-plugin.vala \
 	gcp-view-activatable.vala \
 	gcp-source-location.vala \
 	gcp-source-range.vala \
