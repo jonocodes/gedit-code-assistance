@@ -87,55 +87,33 @@ LDFLAGS="$OLDLDFLAGS"
 LLVM_VERSION=$($LLVM_CONFIG --version)
 AC_DEFINE_UNQUOTED([LLVM_VERSION], "$LLVM_VERSION", [LLVM version])
 
+AC_ARG_ENABLE([local],
+              AS_HELP_STRING([--enable-local],[enable local install (in user directory)]),
+              [enable_local=$enableval],
+              [enable_local=no])
+
 dnl ================================================================
 dnl Find gedit
 dnl ================================================================
-AC_ARG_WITH([gedit],
-            AS_HELP_STRING([--with-gedit=[2/3/auto]],[gedit version to compile for (default: auto)]),
-            [with_gedit=$withval],
-            [with_gedit=auto])
+PKG_CHECK_MODULES([GEDIT], [gedit >= 3.0])
 
-if test "x$with_gedit" = "xauto"; then
-	PKG_CHECK_MODULES([GEDIT3],
-	                  [gedit >= 3.0],
-	                  [with_gedit=3
-	                   geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
-	                   GEDIT_CFLAGS="$GEDIT3_CFLAGS"
-	                   GEDIT_LIBS="$GEDIT3_LIBS"],
-	                  [PKG_CHECK_MODULES([GEDIT2],
-	                                     [gedit-2.20],
-	                                     [with_gedit=2
-	                                      geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20)
-	                                      GEDIT_CFLAGS="$GEDIT2_CFLAGS"
-	                                      GEDIT_LIBS="$GEDIT2_LIBS"],
-	                                     [AC_MSG_ERROR([could not find gedit])])])
-elif test "x$with_gedit" = "x2"; then
-	PKG_CHECK_MODULES([GEDIT], [gedit-2.20])
-
-	geditlibdir=$($PKG_CONFIG --variable=libdir gedit-2.20)
-elif test "x$with_gedit" = "x3"; then
-	PKG_CHECK_MODULES([GEDIT], [gedit >= 3.0])
+if test "x$enable_local" = "xyes"; then
+	geditlibdir="$HOME/.local/share"
+	geditdatadir="$HOME/.local/share"
+else
 	geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
-else
-	AC_MSG_ERROR([invalid gedit version])
+	geditdatadir=$($PKG_CONFIG --variable=prefix gedit)/share
 fi
 
-if test "x$with_gedit" = "x2"; then
-	GEDIT_PLUGIN_DIR="$geditlibdir/gedit-2/plugins"
-else
-	GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
-fi
+GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
+GEDIT_DATA_DIR="$geditdatadir/gedit/plugins"
+
 
 AC_SUBST(GEDIT_PLUGIN_DIR)
+AC_SUBST(GEDIT_DATA_DIR)
 
 AC_SUBST(GEDIT_CFLAGS)
 AC_SUBST(GEDIT_LIBS)
-
-GEDIT_MAJOR_VERSION="$with_gedit"
-AC_SUBST(GEDIT_MAJOR_VERSION)
-
-AM_CONDITIONAL(WITH_GEDIT2, test "x$GEDIT_MAJOR_VERSION" = "x2")
-AM_CONDITIONAL(WITH_GEDIT3, test "x$GEDIT_MAJOR_VERSION" = "x3")
 
 AC_CONFIG_FILES([
 Makefile
@@ -153,8 +131,8 @@ Configuration:
 	Source code location:	${srcdir}
 	Compiler:		${CC}
 	valac:			$VALAC
-	gedit version:          $with_gedit
 	gedit plugin dir:       $GEDIT_PLUGIN_DIR
+	gedit data dir:         $GEDIT_DATA_DIR
 	llvm version:           $LLVM_VERSION
 "
 

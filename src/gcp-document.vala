@@ -315,13 +315,7 @@ class Document : GLib.Object
 			return;
 		}
 
-#if WITH_GEDIT3
-		File ?location = document.location;
-#else
-		File? location = File.new_for_uri(document.get_uri());
-#endif
-
-		set_location(location);
+		set_location(document.location);
 	}
 
 	private void update_modified()
