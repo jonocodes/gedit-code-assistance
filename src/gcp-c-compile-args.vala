@@ -423,6 +423,8 @@ namespace Gcp.C
 				{
 					find_for_makefile(makefile.file, file);
 				}
+
+				return null;
 			};
 
 			try
