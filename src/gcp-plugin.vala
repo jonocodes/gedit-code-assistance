@@ -24,4 +24,7 @@ public void peas_register_types (TypeModule module)
 
 	mod.register_extension_type (typeof (Gedit.ViewActivatable),
 	                             typeof (Gcp.ViewActivatable));
+
+	mod.register_extension_type (typeof (Gedit.AppActivatable),
+	                             typeof (Gcp.AppActivatable));
 }

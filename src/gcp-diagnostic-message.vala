@@ -21,7 +21,7 @@ class DiagnosticMessage : EventBox
 		d_diagnostics = diagnostics;
 		d_view = view;
 
-		visible_window = true;
+		visible_window = false;
 		app_paintable = true;
 
 		d_colors = new DiagnosticColors(get_style_context());
@@ -30,7 +30,6 @@ class DiagnosticMessage : EventBox
 		d_view.buffer.notify["style-scheme"].connect(on_style_scheme_changed);
 
 		d_view.key_press_event.connect(on_view_key_press);
-
 
 		d_inserted = false;
 
@@ -112,9 +111,8 @@ class DiagnosticMessage : EventBox
 
 		d_vbox = new Box(Orientation.VERTICAL, 1);
 		d_vbox.show();
-		d_vbox.border_width = 1;
 
-		StyleContext ctx = d_view.get_style_context();
+		var ctx = d_view.get_style_context();
 		ctx.save();
 
 		ctx.add_class(STYLE_CLASS_VIEW);
@@ -123,12 +121,28 @@ class DiagnosticMessage : EventBox
 
 		ctx.restore();
 
+		bool ismixed = mixed_severity;
+
 		foreach (Diagnostic d in d_diagnostics)
 		{
-			Label label = new Label(d.message);
+			Label label = new Label();
+
+			if (ismixed)
+			{
+				label.set_markup("<b>%s</b>: %s".printf(d.severity.to_string(),
+				                                        Markup.escape_text(d.message)));
+			}
+			else
+			{
+				label.set_text(d.message);
+			}
+
+			label.set_margin_left(6);
+			label.set_margin_right(6);
+
 			label.show();
 
-			label.override_color(StateFlags.NORMAL, color);
+			//label.override_color(StateFlags.NORMAL, color);
 
 			label.halign = Align.START;
 			label.valign = Align.CENTER;
@@ -145,6 +159,31 @@ class DiagnosticMessage : EventBox
 		reposition();
 
 		d_updating = false;
+	}
+
+	private bool mixed_severity
+	{
+		get
+		{
+			bool first = true;
+			Diagnostic.Severity s = Diagnostic.Severity.NONE;
+
+			foreach (Diagnostic d in d_diagnostics)
+			{
+				if (first)
+				{
+					first = false;
+					s = d.severity;
+				}
+
+				if (s != d.severity)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
 	}
 
 	public Diagnostic[] diagnostics
@@ -210,7 +249,7 @@ class DiagnosticMessage : EventBox
 			topx.add(rect.x + rect.width);
 		}
 
-		if (rect.y == y.max)
+		if (rect.y + rect.height == y.max)
 		{
 			bottomx.add(rect.x);
 			bottomx.add(rect.x + rect.width);
@@ -254,14 +293,14 @@ class DiagnosticMessage : EventBox
 		{
 			// Show above
 			aligny = 1;
-			alignyat = ymin;
+			alignyat = ymin - 3;
 			xrange = topx;
 		}
 		else
 		{
 			// Show below
 			aligny = 0;
-			alignyat = ymax;
+			alignyat = ymax + 3;
 			xrange = bottomx;
 		}
 
@@ -293,6 +332,15 @@ class DiagnosticMessage : EventBox
 			d_view.add_child_in_window(this, TextWindowType.TEXT, 0, 0);
 		}
 
+
+		int minwidth;
+		base.get_preferred_width(null, out minwidth);
+
+		if (minwidth < width)
+		{
+			width = minwidth;
+		}
+
 		base.get_preferred_height_for_width(width, out d_height, null);
 		d_width = width;
 
@@ -309,16 +357,47 @@ class DiagnosticMessage : EventBox
 		return SizeRequestMode.HEIGHT_FOR_WIDTH;
 	}
 
-	protected override void get_preferred_width(out int minimum_width, out int natural_width)
+	protected override void get_preferred_width(out int minimum_width,
+	                                            out int natural_width)
 	{
 		minimum_width = d_width;
 		natural_width = d_width;
 	}
 
-	protected override void get_preferred_height_for_width(int width, out int minimum_height, out int natural_height)
+	protected override void get_preferred_height_for_width(int width,
+	                                                       out int minimum_height,
+	                                                       out int natural_height)
 	{
-		minimum_height = d_height;
-		natural_height = d_height;
+		if (width == d_width)
+		{
+			minimum_height = d_height;
+			natural_height = d_height;
+		}
+		else
+		{
+			base.get_preferred_height_for_width(width,
+			                                    out minimum_height,
+			                                    out natural_height);
+		}
+	}
+
+	private void add_class_for_severity(StyleContext ctx)
+	{
+		switch (d_rulingSeverity)
+		{
+			case Diagnostic.Severity.ERROR:
+			case Diagnostic.Severity.FATAL:
+				ctx.add_class(STYLE_CLASS_ERROR);
+			break;
+			case Diagnostic.Severity.WARNING:
+				ctx.add_class(STYLE_CLASS_WARNING);
+			break;
+			case Diagnostic.Severity.INFO:
+				ctx.add_class(STYLE_CLASS_INFO);
+			break;
+			default:
+			break;
+		}
 	}
 
 	protected override bool draw(Cairo.Context context)
@@ -327,15 +406,26 @@ class DiagnosticMessage : EventBox
 
 		get_allocation(out alloc);
 
-		Gdk.RGBA? color;
-		color = d_colors[d_rulingSeverity];
+		var ctx = get_style_context();
 
-		if (color != null)
-		{
-			context.rectangle(0, 0, alloc.width, alloc.height);
-			context.set_source_rgb(color.red, color.green, color.blue);
-			context.fill();
-		}
+		ctx.save();
+		add_class_for_severity(ctx);
+
+		render_background(get_style_context(),
+		                  context,
+		                  0,
+		                  0,
+		                  alloc.width,
+		                  alloc.height);
+
+		render_frame(get_style_context(),
+		             context,
+		             0,
+		             0,
+		             alloc.width,
+		             alloc.height);
+
+		ctx.save();
 
 		base.draw(context);
 
