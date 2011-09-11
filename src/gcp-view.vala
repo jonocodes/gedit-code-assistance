@@ -174,6 +174,7 @@ class View
 	private void on_notify_style_scheme()
 	{
 		update_semantic_tag();
+		update_diagnostic_message();
 	}
 
 	private void on_buffer_changed()
