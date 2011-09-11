@@ -433,9 +433,6 @@ namespace CX
 		[CCode (cname = "CXCursor_NamespaceRef")]
 		NAMESPACE_REF,
 
-		[CCode (cname = "CXCursor_MemberRef")]
-		MEMBER_REF,
-
 		[CCode (cname = "CXCursor_LabelRef")]
 		LABEL_REF,
 
@@ -595,8 +592,8 @@ namespace CX
 		[CCode (cname = "clang_equalCursors")]
 		public bool equal(Cursor other);
 
-		[CCode (cname = "clang_hashCursor")]
-		public uint hash();
+		/*[CCode (cname = "clang_hashCursor")]
+		public uint hash();*/
 
 		[CCode (cname = "clang_getCursorLinkage")]
 		public LinkageKind linkage();

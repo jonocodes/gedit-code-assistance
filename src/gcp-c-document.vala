@@ -43,7 +43,20 @@ class Document : Gcp.Document,
 
 		public uint hash()
 		{
-			return cursor.hash();
+			uint sline;
+			uint scolumn;
+
+			cursor.extent().start().get_instantiation(null, out sline, out scolumn, null);
+
+			uint eline;
+			uint ecolumn;
+
+			cursor.extent().end().get_instantiation(null, out eline, out ecolumn, null);
+
+			uint cmp1 = (uint)(0.5 * (sline + scolumn) * (sline + scolumn + 1) + scolumn);
+			uint cmp2 = (uint)(0.5 * (eline + ecolumn) * (eline + ecolumn + 1) + ecolumn);
+
+			return (uint)(0.5 * (cmp1 + cmp2) * (cmp1 + cmp2 + 1) + cmp2);
 		}
 	}
 
