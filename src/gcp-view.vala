@@ -631,7 +631,20 @@ class View
 
 	private void mark_references(SemanticValue val)
 	{
-		if (val.num_references == 0)
+		LinkedList<SemanticValue> refs = new LinkedList<SemanticValue>();
+
+		for (int i = 0; i < val.num_references; ++i)
+		{
+			SemanticValue r = val.reference(i);
+			File loc = r.range.start.file;
+
+			if (loc != null && loc.equal(d_document.location))
+			{
+				refs.add(r);
+			}
+		}
+
+		if (refs.size == 0)
 		{
 			return;
 		}
@@ -640,9 +653,9 @@ class View
 
 		mark_reference(val);
 
-		for (int i = 0; i < val.num_references; ++i)
+		foreach (SemanticValue r in refs)
 		{
-			mark_reference(val.reference(i));
+			mark_reference(r);
 		}
 	}
 

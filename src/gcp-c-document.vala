@@ -202,21 +202,23 @@ class Document : Gcp.Document,
 			{
 				CursorWrapper wrapper = new CursorWrapper(cursor.referenced());
 
-				if (d_semanticsMap.has_key(wrapper))
+				if (!d_semanticsMap.has_key(wrapper))
 				{
-					SemanticValue rr = d_semanticsMap[wrapper];
-
-					for (int i = 0; i < rr.num_references; ++i)
-					{
-						SemanticValue mr = (Gcp.C.SemanticValue)rr.reference(i);
-
-						val.add_reference(mr);
-						mr.add_reference(val);
-					}
-
-					rr.add_reference(val);
-					val.add_reference(rr);
+					d_semanticsMap[wrapper] = new SemanticValue(cursor.referenced());
 				}
+
+				SemanticValue rr = d_semanticsMap[wrapper];
+
+				for (int i = 0; i < rr.num_references; ++i)
+				{
+					SemanticValue mr = (Gcp.C.SemanticValue)rr.reference(i);
+
+					val.add_reference(mr);
+					mr.add_reference(val);
+				}
+
+				rr.add_reference(val);
+				val.add_reference(rr);
 			}
 		});
 
