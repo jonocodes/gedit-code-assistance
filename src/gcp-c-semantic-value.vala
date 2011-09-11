@@ -35,7 +35,7 @@ class SemanticValue : Gcp.SemanticValue
 
 			if (d_source != null && (loc.file == null || !d_source.equal(loc.file)))
 			{
-				return CX.ChildVisitResult.CONTINUE;
+				return CX.ChildVisitResult.RECURSE;
 			}
 
 			SemanticValue val = new SemanticValue(child);
