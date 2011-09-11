@@ -14,25 +14,25 @@ namespace CX
 	public enum ParseFlags
 	{
 		[CCode (cname = "CXTranslationUnit_None")]
-		None,
+		NONE,
 
 		[CCode (cname = "CXTranslationUnit_DetailedPreprocessingRecord")]
-		DetailedPreprocessingRecord,
+		DETAILED_PREPROCESSING_RECORD,
 
 		[CCode (cname = "CXTranslationUnit_Incomplete")]
-		Incomplete,
+		INCOMPLETE,
 
 		[CCode (cname = "CXTranslationUnit_PrecompiledPreamble")]
-		PrecompiledPreamble,
+		PRECOMPILED_PREAMBLE,
 
 		[CCode (cname = "CXTranslationUnit_CacheCompletionResults")]
-		CacheCompletionResults,
+		CACHE_COMPLETION_RESULTS,
 
 		[CCode (cname = "CXTranslationUnit_CXXPrecompiledPreamble")]
-		CXXPrecompiledPreamble,
+		CXX_PRECOMPLIED_PREAMBLE,
 
 		[CCode (cname = "CXTranslationUnit_CXXChainedPCH")]
-		CXXChainedPCH;
+		CXX_CHAINED_PCH;
 
 		[CCode (cname = "clang_defaultEditingTranslationUnitOptions")]
 		public static ParseFlags default();
@@ -50,14 +50,14 @@ namespace CX
 		public enum SaveFlags
 		{
 			[CCode (cname = "CXSaveTranslationUnit_None")]
-			None
+			NONE
 		}
 
 		[CCode (ccname = "enum CXReparse_Flags")]
 		public enum ReparseFlags
 		{
 			[CCode (cname = "CXReparse_None")]
-			None
+			NONE
 		}
 
 		[CCode (cname = "clang_parseTranslationUnit")]
@@ -71,10 +71,10 @@ namespace CX
 		public static TranslationUnit create(Index idx, string ast_filename);
 
 		[CCode (cname = "clang_saveTranslationUnit")]
-		public int save(string filename, SaveFlags flags = SaveFlags.None);
+		public int save(string filename, SaveFlags flags = SaveFlags.NONE);
 
 		[CCode (cname = "clang_reparseTranslationUnit")]
-		public int reparse([CCode(array_length_pos=0.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null, ReparseFlags flags = ReparseFlags.None);
+		public int reparse([CCode(array_length_pos=0.9, array_null_terminated = false)] UnsavedFile[] ?unsaved_files = null, ReparseFlags flags = ReparseFlags.NONE);
 
 		public ReparseFlags default_reparse_options
 		{
