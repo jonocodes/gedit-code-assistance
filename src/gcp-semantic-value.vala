@@ -65,12 +65,12 @@ abstract class SemanticValue : Object, SourceRangeSupport
 
 	public abstract SemanticValue? definition
 	{
-		get;
+		owned get;
 	}
 
 	public abstract SemanticValue? declaration
 	{
-		get;
+		owned get;
 	}
 
 	public abstract int num_references

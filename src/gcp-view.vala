@@ -69,6 +69,50 @@ class View : Object
 		}
 	}
 
+	private void move_cursor_to_semantic_value(SemanticValue? val)
+	{
+		if (val == null)
+		{
+			return;
+		}
+
+		TextIter start;
+		TextIter end;
+
+		SourceRange range = highlight_range(val);
+
+		if (!range.start.get_iter(d_buffer, out start))
+		{
+			return;
+		}
+
+		if (!range.end.get_iter(d_buffer, out end))
+		{
+			return;
+		}
+
+		d_buffer.select_range(start, end);
+	}
+
+	[Signal(action = true)]
+	public virtual signal bool find_definition()
+	{
+		SemanticValue? v = semantic_value_at_cursor();
+
+		if (v == null)
+		{
+			return false;
+		}
+
+		if ((v.reference_type & SemanticValue.ReferenceType.DEFINITION) != 0)
+		{
+			return true;
+		}
+
+		move_cursor_to_semantic_value(v.definition);
+		return true;
+	}
+
 	[Signal(action = true)]
 	public virtual signal bool find_reference(int direction)
 	{
@@ -96,22 +140,7 @@ class View : Object
 			vidx = refs.length + vidx;
 		}
 
-		SourceRange range = refs[vidx].range;
-		TextIter start;
-		TextIter end;
-
-		if (!range.start.get_iter(d_buffer, out start))
-		{
-			return true;
-		}
-
-		if (!range.end.get_iter(d_buffer, out end))
-		{
-			return true;
-		}
-
-		d_buffer.select_range(start, end);
-
+		move_cursor_to_semantic_value(refs[vidx]);
 		return true;
 	}
 
@@ -673,11 +702,8 @@ class View : Object
 		d_cursorDiagnostics = diagnostics;
 	}
 
-	private void mark_reference(SemanticValue val)
+	private SourceRange highlight_range(SemanticValue? val)
 	{
-		TextIter start;
-		TextIter end;
-
 		SourceRange range = val.range;
 
 		if (val.kind == SemanticValue.Kind.FUNCTION &&
@@ -690,6 +716,16 @@ class View : Object
 			paramstart = new SourceLocation(paramstart.file, paramstart.line, paramstart.column - 1);
 			range = new SourceRange(val.range.start.copy(), paramstart);
 		}
+
+		return range;
+	}
+
+	private void mark_reference(SemanticValue val)
+	{
+		TextIter start;
+		TextIter end;
+
+		SourceRange range = highlight_range(val);
 
 		d_document.source_range(range, out start, out end);
 		d_buffer.apply_tag(d_semanticTag, start, end);
@@ -732,22 +768,28 @@ class View : Object
 		d_buffer.remove_tag(d_semanticTag, start, end);
 	}
 
-	private SemanticValue[] references_at_cursor(out SemanticValue? val, out int vidx)
+	private SemanticValue? semantic_value_at_cursor()
 	{
 		SemanticValueSupport sem = d_document as SemanticValueSupport;
-		val = null;
-		vidx = -1;
 
 		if (sem == null)
 		{
-			return new SemanticValue[] {};
+			return null;
 		}
 
 		TextIter iter;
 		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
 
 		SourceLocation loc = new SourceLocation.iter(iter);
-		val = sem.semantics.find_inner_at(loc);
+
+		return sem.semantics.find_inner_at(loc);
+	}
+
+	private SemanticValue[] references_at_cursor(out SemanticValue? val, out int vidx)
+	{
+		vidx = -1;
+
+		val = semantic_value_at_cursor();
 
 		if (val == null)
 		{

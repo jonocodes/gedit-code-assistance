@@ -35,6 +35,7 @@ GcpDiagnosticMessage.info
 {
   bind "<Control>Up" { "find-reference" (-1) };
   bind "<Control>Down" { "find-reference" (1) };
+  bind "<Control>Home" { "find-definition" () };
 }
 
 /* vi:ex:ts=2:et */

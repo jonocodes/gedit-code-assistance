@@ -92,12 +92,34 @@ class SemanticValue : Gcp.SemanticValue
 
 	public override Gcp.SemanticValue? definition
 	{
-		get { return null; }
+		owned get
+		{
+			foreach (SemanticValue v in d_references)
+			{
+				if ((v.reference_type & Gcp.SemanticValue.ReferenceType.DEFINITION) != 0)
+				{
+					return v;
+				}
+			}
+
+			return null;
+		}
 	}
 
 	public override Gcp.SemanticValue? declaration
 	{
-		get { return null; }
+		owned get
+		{
+			foreach (SemanticValue v in d_references)
+			{
+				if ((v.reference_type & Gcp.SemanticValue.ReferenceType.DECLARATION) != 0)
+				{
+					return v;
+				}
+			}
+
+			return null;
+		}
 	}
 
 	public override Gcp.SemanticValue? next
