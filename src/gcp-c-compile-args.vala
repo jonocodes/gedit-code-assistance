@@ -33,10 +33,10 @@ namespace Gcp.C
 		private class Cache
 		{
 			private File d_source;
-			private File d_makefile;
+			private File? d_makefile;
 			private string[] d_args;
 
-			public Cache(File source, File makefile, string[] args)
+			public Cache(File source, File? makefile, string[] args)
 			{
 				d_source = source;
 				d_makefile = makefile;
@@ -498,12 +498,14 @@ namespace Gcp.C
 				}
 				catch (Error e)
 				{
-					changed_in_idle(file);
-					return null;
+					makefile = null;
 				}
 
 				if (makefile == null)
 				{
+					Cache c = new Cache(file, null, new string[] {});
+					d_argsCache[file] = c;
+
 					changed_in_idle(file);
 					return null;
 				}
