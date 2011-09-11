@@ -193,11 +193,6 @@ class Document : Gcp.Document,
 			d_semantics.add(val);
 			d_semanticsMap[new CursorWrapper(cursor)] = val;
 
-			Gtk.TextIter start;
-			Gtk.TextIter end;
-
-			source_range(val.range, out start, out end);
-
 			if (Translator.is_reference(cursor))
 			{
 				CursorWrapper wrapper = new CursorWrapper(cursor.referenced());
