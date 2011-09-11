@@ -244,11 +244,7 @@ class SourceIndex<T> : Object
 
 		if ((flags & FindFlags.INNER_MOST) != 0)
 		{
-			if (iter.is_begin())
-			{
-				return new T[] {};
-			}
-			else
+			while (!iter.is_begin())
 			{
 				iter = iter.prev();
 
@@ -256,11 +252,13 @@ class SourceIndex<T> : Object
 				{
 					return new T[] {iter.get().obj};
 				}
-				else
+				else if (!iter.get().encapsulated)
 				{
-					return new T[] {};
+					break;
 				}
 			}
+
+			return new T[] {};
 		}
 
 		// Go back to find ranges that encapsulate the location
