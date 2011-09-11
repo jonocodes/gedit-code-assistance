@@ -73,22 +73,26 @@ class Translator
 
 	public static Gcp.SemanticValue.ReferenceType semantic_reference_type(CX.Cursor cursor)
 	{
+		Gcp.SemanticValue.ReferenceType rtype;
+
+		rtype = Gcp.SemanticValue.ReferenceType.NONE;
+
 		if (cursor.kind().is_reference())
 		{
-			return Gcp.SemanticValue.ReferenceType.REFERENCE;
+			rtype |= Gcp.SemanticValue.ReferenceType.REFERENCE;
 		}
 
 		if (cursor.kind().is_declaration())
 		{
-			return Gcp.SemanticValue.ReferenceType.DECLARATION;
+			rtype |= Gcp.SemanticValue.ReferenceType.DECLARATION;
 		}
 
 		if (cursor.is_definition())
 		{
-			return Gcp.SemanticValue.ReferenceType.DEFINITION;
+			rtype |= Gcp.SemanticValue.ReferenceType.DEFINITION;
 		}
 
-		return Gcp.SemanticValue.ReferenceType.NONE;
+		return rtype;
 	}
 
 	public static Diagnostic.Severity severity(CX.DiagnosticSeverity severity)

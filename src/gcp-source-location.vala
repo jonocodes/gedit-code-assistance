@@ -40,6 +40,11 @@ class SourceLocation : Object, SourceRangeSupport
 		this(null, iter.get_line() + 1, iter.get_line_offset() + 1);
 	}
 
+	public SourceLocation copy()
+	{
+		return new SourceLocation(d_file.dup(), d_line, d_column);
+	}
+
 	public File? file
 	{
 		get { return d_file; }

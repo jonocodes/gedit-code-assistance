@@ -623,10 +623,23 @@ class View
 		TextIter start;
 		TextIter end;
 
-		d_document.source_range(val.range, out start, out end);
+		SourceRange range = val.range;
+
+		if (val.kind == SemanticValue.Kind.FUNCTION &&
+		    (val.reference_type & SemanticValue.ReferenceType.DEFINITION) != 0)
+		{
+			// We special case this because we really don't want to highlight
+			// the whole function definition
+			SourceLocation paramstart = val.down.range.start.copy();
+
+			paramstart = new SourceLocation(paramstart.file, paramstart.line, paramstart.column - 1);
+			range = new SourceRange(val.range.start.copy(), paramstart);
+		}
+
+		d_document.source_range(range, out start, out end);
 		d_buffer.apply_tag(d_semanticTag, start, end);
 
-		d_scrollbarMarker.add_with_id(d_lastMergeId, val.range, d_refColor);
+		d_scrollbarMarker.add_with_id(d_lastMergeId, range, d_refColor);
 	}
 
 	private void mark_references(SemanticValue val)

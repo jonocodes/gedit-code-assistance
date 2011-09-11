@@ -23,12 +23,13 @@ abstract class SemanticValue : Object, SourceRangeSupport
 		BLOCK
 	}
 
+	[Flags]
 	public enum ReferenceType
 	{
 		NONE,
-		DECLARATION,
-		REFERENCE,
-		DEFINITION
+		DECLARATION = 1 << 0,
+		REFERENCE = 1 << 1,
+		DEFINITION = 1 << 2
 	}
 
 	private SourceRange d_range;
