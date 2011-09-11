@@ -22,7 +22,7 @@ using Gtk;
 namespace Gcp
 {
 
-class SourceLocation
+class SourceLocation : Object, SourceRangeSupport
 {
 	private File? d_file;
 	private int d_line;
@@ -33,6 +33,11 @@ class SourceLocation
 		d_file = file;
 		d_line = line;
 		d_column = column;
+	}
+
+	public SourceLocation.iter(TextIter iter)
+	{
+		this(null, iter.get_line() + 1, iter.get_line_offset() + 1);
 	}
 
 	public File? file
@@ -49,6 +54,39 @@ class SourceLocation
 	public int column
 	{
 		get { return d_column; }
+	}
+
+	public SourceRange? range
+	{
+		owned get
+		{
+			SourceRange r = new SourceRange(new SourceLocation(d_file, d_line, d_column),
+			                                new SourceLocation(d_file, d_line, d_column));
+
+			return (owned)r;
+		}
+	}
+
+	public SourceRange[] ranges
+	{
+		owned get { return new SourceRange[] {range}; }
+	}
+
+	private int compare_int(int a, int b)
+	{
+		return a < b ? -1 : (a == b ? 0 : 1);
+	}
+
+	public int compare_to(SourceLocation other)
+	{
+		if (d_line == other.d_line)
+		{
+			return compare_int(d_column, other.d_column);
+		}
+		else
+		{
+			return d_line < other.d_line ? -1 : 1;
+		}
 	}
 
 	public bool get_iter(TextBuffer buffer, out TextIter iter)

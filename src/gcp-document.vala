@@ -81,7 +81,7 @@ class Document : GLib.Object
 
 		if (diag != null)
 		{
-			diag.updated.connect(on_diagnostic_updated);
+			diag.diagnostics_updated.connect(on_diagnostic_updated);
 		}
 	}
 
@@ -112,7 +112,7 @@ class Document : GLib.Object
 
 		if (diag != null)
 		{
-			diag.updated.disconnect(on_diagnostic_updated);
+			diag.diagnostics_updated.disconnect(on_diagnostic_updated);
 
 			remove_marks();
 		}

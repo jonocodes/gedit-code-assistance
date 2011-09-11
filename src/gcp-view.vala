@@ -36,6 +36,8 @@ class View
 	private HashMap<TextMark, Gdk.RGBA?> d_diagnosticsAtEnd;
 	private Diagnostic[] d_cursorDiagnostics;
 	private DiagnosticMessage? d_cursorDiagnosticMessage;
+	private SemanticValue? d_semanticValue;
+	private TextTag? d_semanticTag;
 
 	public View(Gedit.View view)
 	{
@@ -77,8 +79,78 @@ class View
 		d_buffer.notify["language"].disconnect(on_notify_language);
 		d_buffer.changed.disconnect(on_buffer_changed);
 		d_buffer.mark_set.disconnect(on_buffer_mark_set);
+		d_buffer.notify["style-scheme"].disconnect(on_notify_style_scheme);
+
+		if (d_semanticTag != null)
+		{
+			remove_semantic_tag();
+			d_buffer.tag_table.remove(d_semanticTag);
+			d_semanticValue = null;
+		}
 
 		d_buffer = null;
+	}
+
+	private void update_semantic_tag()
+	{
+		remove_semantic_tag();
+
+		d_semanticValue = null;
+
+		if (d_semanticTag != null)
+		{
+			d_buffer.tag_table.remove(d_semanticTag);
+		}
+
+		GtkSource.Style? style = d_buffer.style_scheme.get_style("search-match");
+		Gdk.Color bg = {0, 0, 0, 0};
+		Gdk.Color fg = {0, 0, 0, 0};
+
+		if (style == null)
+		{
+			Gdk.Color.parse("#fff600", out bg);
+			Gdk.Color.parse("#333", out fg);
+		}
+		else
+		{
+			StyleContext ctx;
+
+			ctx = d_view.get_style_context();
+
+			ctx.save();
+			ctx.add_class(STYLE_CLASS_VIEW);
+
+			Gdk.RGBA fgcol;
+			Gdk.RGBA bgcol;
+
+			ctx.get_color(StateFlags.NORMAL, out fgcol);
+			ctx.get_background_color(StateFlags.NORMAL, out bgcol);
+
+			bg.red = (ushort)(bgcol.red * 65535);
+			bg.green = (ushort)(bgcol.green * 65535);
+			bg.blue = (ushort)(bgcol.blue * 65535);
+
+			fg.red = (ushort)(fgcol.red * 65535);
+			fg.green = (ushort)(fgcol.green * 65535);
+			fg.blue = (ushort)(fgcol.blue * 65535);
+
+			ctx.restore();
+
+			if (style.background_set)
+			{
+				Gdk.Color.parse(style.background, out bg);
+			}
+
+			if (style.foreground_set)
+			{
+				Gdk.Color.parse(style.foreground, out fg);
+			}
+		}
+
+		d_semanticTag = d_buffer.create_tag("Gcp.View.Semantic",
+		                                    background_gdk: bg,
+		                                    foreground_gdk: fg,
+		                                    background_full_height: true);
 	}
 
 	private void connect_buffer(Gedit.Document buffer)
@@ -93,8 +165,15 @@ class View
 		d_buffer.notify["language"].connect(on_notify_language);
 		d_buffer.changed.connect(on_buffer_changed);
 		d_buffer.mark_set.connect(on_buffer_mark_set);
+		d_buffer.notify["style-scheme"].connect(on_notify_style_scheme);
 
+		update_semantic_tag();
 		update_backend();
+	}
+
+	private void on_notify_style_scheme()
+	{
+		update_semantic_tag();
 	}
 
 	private void on_buffer_changed()
@@ -131,7 +210,12 @@ class View
 				d_view.query_tooltip.disconnect(on_view_query_tooltip);
 				d_view.set_show_line_marks(false);
 
-				d_buffer.cursor_moved.disconnect(on_cursor_moved);
+				d_buffer.cursor_moved.disconnect(on_cursor_diagnostics_moved);
+			}
+
+			if (d_document is SemanticValueSupport)
+			{
+				d_buffer.cursor_moved.disconnect(on_cursor_semantics_moved);
 			}
 
 			d_backend.unregister(d_document);
@@ -168,7 +252,7 @@ class View
 		if (diagnostic == null)
 		{
 			d_view.buffer.get_iter_at_mark(out iter, mark);
-			uint line = iter.get_line() + 1;
+			int line = iter.get_line() + 1;
 
 			DiagnosticSupport diag = d_document as DiagnosticSupport;
 
@@ -198,12 +282,10 @@ class View
 	
 		d_view.get_iter_at_location(out iter, bx, by);
 
-		uint line = iter.get_line() + 1;
-		uint col = iter.get_line_offset() + 1;
-
+		SourceLocation location = new SourceLocation.iter(iter);
 		DiagnosticSupport diag = d_document as DiagnosticSupport;
 
-		string? s = format_diagnostics(diag.find_at(line, col));
+		string? s = format_diagnostics(diag.find_at(location));
 
 		if (s == null)
 		{
@@ -227,14 +309,14 @@ class View
 		{
 			d_document = d_backend.register(d_view.buffer as Gedit.Document);
 
-			DiagnosticSupport diag = d_document as DiagnosticSupport;
+			DiagnosticSupport? diag = d_document as DiagnosticSupport;
 
 			if (diag != null)
 			{
 				MarkAttributes attr;
 
 				diag.tags = d_tags;
-				diag.updated.connect(on_diagnostic_updated);
+				diag.diagnostics_updated.connect(on_diagnostic_updated);
 
 				// Error
 				attr = new MarkAttributes();
@@ -264,7 +346,15 @@ class View
 
 				d_view.set_show_line_marks(true);
 
-				d_buffer.cursor_moved.connect(on_cursor_moved);
+				d_buffer.cursor_moved.connect(on_cursor_diagnostics_moved);
+			}
+
+			SemanticValueSupport? sem = d_document as SemanticValueSupport;
+
+			if (sem != null)
+			{
+				sem.semantic_values_updated.connect(on_semantics_updated);
+				d_buffer.cursor_moved.connect(on_cursor_semantics_moved);
 			}
 		}
 		else
@@ -297,6 +387,11 @@ class View
 
 		TextMark mark = d_buffer.create_mark(null, iter, false);
 		d_diagnosticsAtEnd[mark] = color;
+	}
+
+	private void on_semantics_updated(SemanticValueSupport semantics)
+	{
+		update_references();
 	}
 
 	private void on_diagnostic_updated(DiagnosticSupport diagnostics)
@@ -491,10 +586,8 @@ class View
 
 		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
 
-		uint line = (uint)iter.get_line();
-		uint column = (uint)iter.get_line_offset();
-
-		Diagnostic[] diagnostics = diag.find_at(line + 1, column + 1);
+		SourceLocation location = new SourceLocation.iter(iter);
+		Diagnostic[] diagnostics = diag.find_at(location);
 
 		if (same_diagnostics(diagnostics, d_cursorDiagnostics))
 		{
@@ -516,9 +609,81 @@ class View
 		d_cursorDiagnostics = diagnostics;
 	}
 
-	private void on_cursor_moved()
+	private void mark_reference(SemanticValue val)
+	{
+		TextIter start;
+		TextIter end;
+
+		d_document.source_range(val.range, out start, out end);
+
+		d_buffer.apply_tag(d_semanticTag, start, end);
+	}
+
+	private void mark_references(SemanticValue val)
+	{
+		if (val.num_references == 0)
+		{
+			return;
+		}
+
+		mark_reference(val);
+
+		for (int i = 0; i < val.num_references; ++i)
+		{
+			mark_reference(val.reference(i));
+		}
+	}
+
+	private void remove_semantic_tag()
+	{
+		TextIter start;
+		TextIter end;
+
+		if (d_semanticTag == null)
+		{
+			return;
+		}
+
+		d_buffer.get_bounds(out start, out end);
+		d_buffer.remove_tag(d_semanticTag, start, end);
+	}
+
+	private void update_references()
+	{
+		SemanticValueSupport sem = d_document as SemanticValueSupport;
+		TextIter iter;
+
+		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
+
+		SourceLocation loc = new SourceLocation.iter(iter);
+		SemanticValue? v = sem.semantics.find_inner_at(loc);
+
+		if (v == d_semanticValue)
+		{
+			return;
+		}
+
+		if (d_semanticValue != null)
+		{
+			remove_semantic_tag();
+		}
+
+		d_semanticValue = v;
+
+		if (d_semanticValue != null)
+		{
+			mark_references(d_semanticValue);
+		}
+	}
+
+	private void on_cursor_diagnostics_moved()
 	{
 		update_diagnostic_message();
+	}
+
+	private void on_cursor_semantics_moved()
+	{
+		update_references();
 	}
 }
 

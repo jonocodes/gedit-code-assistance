@@ -20,7 +20,7 @@
 namespace Gcp
 {
 
-class SourceRange
+class SourceRange : Object, SourceRangeSupport
 {
 	private SourceLocation d_start;
 	private SourceLocation d_end;
@@ -29,6 +29,16 @@ class SourceRange
 	{
 		d_start = start;
 		d_end = end;
+	}
+
+	public SourceRange? range
+	{
+		owned get { return this; }
+	}
+
+	public SourceRange[] ranges
+	{
+		owned get { return new SourceRange[] {this}; }
 	}
 
 	public SourceLocation start
@@ -41,13 +51,35 @@ class SourceRange
 		get { return d_end; }
 	}
 
-	public bool contains(uint line, uint column)
+	public int compare_to(SourceRange other)
+	{
+		int st = d_start.compare_to(other.d_start);
+
+		if (st != 0)
+		{
+			return st;
+		}
+
+		return other.d_end.compare_to(d_end);
+	}
+
+	public bool contains_range(SourceRange range)
+	{
+		return contains_location(range.start) && contains_location(range.end);
+	}
+
+	public bool contains_location(SourceLocation location)
+	{
+		return contains(location.line, location.column);
+	}
+
+	public bool contains(int line, int column)
 	{
 		return (d_start.line < line || (d_start.line == line && d_start.column <= column)) &&
 		       (d_end.line > line || (d_end.line == line && d_end.column >= column));
 	}
 
-	public bool contains_line(uint line)
+	public bool contains_line(int line)
 	{
 		return d_start.line <= line && d_end.line >= line;
 	}

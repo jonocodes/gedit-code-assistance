@@ -677,7 +677,7 @@ namespace CX
 		public String spelling();
 
 		[CCode (cname = "clang_getCursorReferenced")]
-		public Cursor cursor_referenced();
+		public Cursor referenced();
 
 		[CCode (cname = "clang_getCursorDefinition")]
 		public Cursor definition();

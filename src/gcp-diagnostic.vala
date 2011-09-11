@@ -22,7 +22,7 @@ using Gee;
 namespace Gcp
 {
 
-class Diagnostic
+class Diagnostic : Object, SourceRangeSupport
 {
 	public enum Severity
 	{
@@ -59,6 +59,7 @@ class Diagnostic
 
 	private SourceLocation d_location;
 	private SourceRange[] d_ranges;
+	private SourceRange[]? d_rangesAndLocation;
 	private Fixit[] d_fixits;
 	private Severity d_severity;
 	private string d_message;
@@ -81,9 +82,28 @@ class Diagnostic
 		get { return d_location; }
 	}
 
+	public SourceRange? range
+	{
+		owned get { return d_location.range; }
+	}
+
 	public SourceRange[] ranges
 	{
-		get { return d_ranges; }
+		owned get
+		{
+			if (d_rangesAndLocation == null)
+			{
+				d_rangesAndLocation = new SourceRange[d_ranges.length + 1];
+				d_rangesAndLocation[0] = d_location.range;
+
+				for (int i = 0; i < d_ranges.length; ++i)
+				{
+					d_rangesAndLocation[i + 1] = d_ranges[i];
+				}
+			}
+
+			return d_rangesAndLocation;
+		}
 	}
 
 	public Fixit[] fixits
@@ -101,7 +121,7 @@ class Diagnostic
 		get { return d_message; }
 	}
 
-	public string to_markup(bool include_severity = true)
+	private string loc_string()
 	{
 		string[] r = new string[d_ranges.length];
 
@@ -117,15 +137,25 @@ class Diagnostic
 			loc = "%s at %s".printf(string.joinv(", ", r), loc);
 		}
 
+		return loc;
+	}
+
+	public string to_string()
+	{
+		return "%s %s: %s".printf(d_severity.to_string(), loc_string(), d_message);
+	}
+
+	public string to_markup(bool include_severity = true)
+	{
 		if (include_severity)
 		{
 			return "<b>%s</b> %s: %s".printf(d_severity.to_string(),
-			                                 loc,
+			                                 loc_string(),
 			                                 Markup.escape_text(d_message));
 		}
 		else
 		{
-			return "%s: %s".printf(loc, Markup.escape_text(d_message));
+			return "%s: %s".printf(loc_string(), Markup.escape_text(d_message));
 		}
 	}
 }

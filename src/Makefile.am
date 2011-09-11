@@ -14,12 +14,16 @@ vala_sources = \
 	gcp-source-location.vala \
 	gcp-source-range.vala \
 	gcp-expand-range.vala \
+	gcp-source-range-support.vala \
+	gcp-source-index.vala \
 	gcp-view.vala \
 	gcp-document.vala \
 	gcp-scrollbar-marker.vala \
 	gcp-backend.vala \
 	gcp-backend-manager.vala \
 	gcp-unsaved-file.vala \
+	gcp-semantic-value.vala \
+	gcp-semantic-value-support.vala \
 	gcp-symbol-browser.vala \
 	gcp-symbol-browser-support.vala \
 	gcp-diagnostic.vala \
@@ -30,7 +34,9 @@ vala_sources = \
 	gcp-c-backend.vala \
 	gcp-c-document.vala \
 	gcp-c-compile-args.vala \
-	gcp-c-translation-unit.vala
+	gcp-c-translation-unit.vala \
+	gcp-c-semantic-value.vala \
+	gcp-c-translator.vala
 
 SOURCES = \
 	$(vala_sources) \
