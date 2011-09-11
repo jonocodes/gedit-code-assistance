@@ -43,7 +43,6 @@ class Translator
 			case CX.CursorKind.ENUM_DECL:
 				return Gcp.SemanticValue.Kind.ENUM;
 			case CX.CursorKind.FIELD_DECL:
-			case CX.CursorKind.MEMBER_REF:
 				return Gcp.SemanticValue.Kind.FIELD;
 			case CX.CursorKind.ENUM_CONSTANT_DECL:
 				return Gcp.SemanticValue.Kind.ENUM_VALUE;
