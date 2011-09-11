@@ -38,6 +38,8 @@ class View
 	private DiagnosticMessage? d_cursorDiagnosticMessage;
 	private SemanticValue? d_semanticValue;
 	private TextTag? d_semanticTag;
+	private uint d_lastMergeId;
+	private Gdk.RGBA d_refColor;
 
 	public View(Gedit.View view)
 	{
@@ -83,7 +85,7 @@ class View
 
 		if (d_semanticTag != null)
 		{
-			remove_semantic_tag();
+			remove_references();
 			d_buffer.tag_table.remove(d_semanticTag);
 			d_semanticValue = null;
 		}
@@ -93,7 +95,7 @@ class View
 
 	private void update_semantic_tag()
 	{
-		remove_semantic_tag();
+		remove_references();
 
 		d_semanticValue = null;
 
@@ -147,10 +149,14 @@ class View
 			}
 		}
 
+		d_refColor = {bg.red / 65535.0, bg.green / 65535.0, bg.blue / 65535.0, 1};
+
 		d_semanticTag = d_buffer.create_tag("Gcp.View.Semantic",
 		                                    background_gdk: bg,
 		                                    foreground_gdk: fg,
 		                                    background_full_height: true);
+
+		update_references();
 	}
 
 	private void connect_buffer(Gedit.Document buffer)
@@ -417,6 +423,8 @@ class View
 
 		d_diagnosticsAtEnd.clear();
 
+		uint mid = d_scrollbarMarker.new_merge_id();
+
 		foreach (Diagnostic d in diagnostics.diagnostics)
 		{
 			Gdk.RGBA color = colors[d.severity];
@@ -424,7 +432,7 @@ class View
 
 			foreach (SourceRange range in d.ranges)
 			{
-				d_scrollbarMarker.add(range, color);
+				d_scrollbarMarker.add_with_id(mid, range, color);
 
 				if (range.start.line == range.end.line &&
 				    range.start.column == range.end.column)
@@ -436,7 +444,7 @@ class View
 				}
 			}
 
-			d_scrollbarMarker.add(new SourceRange(d.location, d.location), color);
+			d_scrollbarMarker.add_with_id(mid, d.location.range, color);
 
 			if (diagnostic_is_at_end(d.location))
 			{
@@ -616,8 +624,9 @@ class View
 		TextIter end;
 
 		d_document.source_range(val.range, out start, out end);
-
 		d_buffer.apply_tag(d_semanticTag, start, end);
+
+		d_scrollbarMarker.add_with_id(d_lastMergeId, val.range, d_refColor);
 	}
 
 	private void mark_references(SemanticValue val)
@@ -627,6 +636,8 @@ class View
 			return;
 		}
 
+		d_lastMergeId = d_scrollbarMarker.new_merge_id();
+
 		mark_reference(val);
 
 		for (int i = 0; i < val.num_references; ++i)
@@ -635,10 +646,16 @@ class View
 		}
 	}
 
-	private void remove_semantic_tag()
+	private void remove_references()
 	{
 		TextIter start;
 		TextIter end;
+
+		if (d_lastMergeId != 0)
+		{
+			d_scrollbarMarker.remove(d_lastMergeId);
+			d_lastMergeId = 0;
+		}
 
 		if (d_semanticTag == null)
 		{
@@ -654,6 +671,11 @@ class View
 		SemanticValueSupport sem = d_document as SemanticValueSupport;
 		TextIter iter;
 
+		if (sem == null)
+		{
+			return;
+		}
+
 		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
 
 		SourceLocation loc = new SourceLocation.iter(iter);
@@ -666,7 +688,7 @@ class View
 
 		if (d_semanticValue != null)
 		{
-			remove_semantic_tag();
+			remove_references();
 		}
 
 		d_semanticValue = v;

@@ -66,7 +66,7 @@ class SourceIndex<T> : Object
 			return !d_iter.is_end();
 		}
 
-		public T get()
+		public new T get()
 		{
 			return (T)d_iter.get().obj;
 		}

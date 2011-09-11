@@ -54,18 +54,19 @@ class ScrollbarMarker
 	}
 
 	private unowned Scrollbar? d_scrollbar;
-	private LinkedList<Marker> d_markers;
+	private HashMap<uint, LinkedList<Marker>> d_markers;
 	private int d_spacing;
 	private int d_maxline;
 	private int d_border;
 	private int d_width;
+	private uint d_mergeId;
 
 	public ScrollbarMarker(Scrollbar scrollbar)
 	{
 		d_scrollbar = scrollbar;
 		d_scrollbar.draw.connect_after(on_scrollbar_draw);
 
-		d_markers = new LinkedList<Marker>();
+		d_markers = new HashMap<uint, LinkedList<Marker>>();
 		d_maxline = 0;
 
 		d_scrollbar.style_updated.connect(on_style_updated);
@@ -109,16 +110,56 @@ class ScrollbarMarker
 		update_spacing();
 	}
 
-	public void add(SourceRange range, Gdk.RGBA color)
+	public uint new_merge_id()
 	{
-		d_markers.add(new Marker(range, color));
+		return ++d_mergeId;
+	}
 
+	public void add_with_id(uint id, SourceRange range, Gdk.RGBA color)
+	{
+		Marker marker = new Marker(range, color);
+		LinkedList<Marker> lst;
+
+		if (d_markers.has_key(id))
+		{
+			lst = d_markers[id];
+		}
+		else
+		{
+			lst = new LinkedList<Marker>();
+			d_markers[id] = lst;
+		}
+
+		lst.add(marker);
+
+		d_scrollbar.queue_draw();
+	}
+
+	public uint add(SourceRange range, Gdk.RGBA color)
+	{
+		uint id = new_merge_id();
+
+		add_with_id(id, range, color);
+		return id;
+	}
+
+	public void remove(uint id)
+	{
+		if (!d_markers.has_key(id))
+		{
+			return;
+		}
+
+		d_markers.unset(id);
 		d_scrollbar.queue_draw();
 	}
 
 	public void clear()
 	{
 		d_markers.clear();
+		d_mergeId = 0;
+
+		d_scrollbar.queue_draw();
 	}
 
 	~ScrollbarMarker()
@@ -172,9 +213,14 @@ class ScrollbarMarker
 		range.y += d_spacing;
 		range.height -= 2 * d_spacing;
 
-		foreach (Marker marker in d_markers)
+		foreach (uint key in d_markers.keys)
 		{
-			draw_marker(ctx, range, marker);
+			LinkedList<Marker> lst = d_markers[key];
+
+			foreach (Marker marker in lst)
+			{
+				draw_marker(ctx, range, marker);
+			}
 		}
 
 		return false;
