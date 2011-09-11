@@ -31,4 +31,10 @@ GcpDiagnosticMessage.info
                                   to(shade(@info_bg_color, 0.75)));
 }
 
+@binding-set GcpViewBindings
+{
+  bind "<Control>Up" { "find-reference" (-1) };
+  bind "<Control>Down" { "find-reference" (1) };
+}
+
 /* vi:ex:ts=2:et */

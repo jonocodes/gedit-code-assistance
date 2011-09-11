@@ -24,7 +24,7 @@ using Gee;
 namespace Gcp
 {
 
-class View
+class View : Object
 {
 	private unowned Gedit.View d_view;
 
@@ -41,12 +41,20 @@ class View
 	private uint d_lastMergeId;
 	private Gdk.RGBA d_refColor;
 
+	private static unowned BindingSet s_bindingSet;
+
+	static construct
+	{
+		s_bindingSet = Gtk.BindingSet.find("GcpViewBindings");
+	}
+
 	public View(Gedit.View view)
 	{
 		d_view = view;
 
 		d_view.notify["buffer"].connect(on_notify_buffer);
 		d_view.draw.connect_after(on_view_draw);
+		d_view.key_press_event.connect(on_view_key_press);
 
 		d_tags = new DiagnosticTags(d_view);
 		d_diagnosticsAtEnd = new HashMap<TextMark, Gdk.RGBA?>();
@@ -61,10 +69,57 @@ class View
 		}
 	}
 
+	[Signal(action = true)]
+	public virtual signal bool find_reference(int direction)
+	{
+		SemanticValueSupport? sem = d_document as SemanticValueSupport;
+
+		if (sem == null)
+		{
+			return false;
+		}
+
+		SemanticValue? v;
+		int vidx;
+
+		SemanticValue[] refs = references_at_cursor(out v, out vidx);
+
+		if (v == null || refs.length <= 1)
+		{
+			return true;
+		}
+
+		vidx = (vidx + direction) % refs.length;
+
+		if (vidx < 0)
+		{
+			vidx = refs.length + vidx;
+		}
+
+		SourceRange range = refs[vidx].range;
+		TextIter start;
+		TextIter end;
+
+		if (!range.start.get_iter(d_buffer, out start))
+		{
+			return true;
+		}
+
+		if (!range.end.get_iter(d_buffer, out end))
+		{
+			return true;
+		}
+
+		d_buffer.select_range(start, end);
+
+		return true;
+	}
+
 	public void deactivate()
 	{
 		d_view.notify["buffer"].disconnect(on_notify_buffer);
 		d_view.draw.disconnect(on_view_draw);
+		d_view.key_press_event.disconnect(on_view_key_press);
 
 		disconnect_buffer();
 
@@ -642,29 +697,14 @@ class View
 		d_scrollbarMarker.add_with_id(d_lastMergeId, range, d_refColor);
 	}
 
-	private void mark_references(SemanticValue val)
+	private void mark_references(SemanticValue[] refs)
 	{
-		LinkedList<SemanticValue> refs = new LinkedList<SemanticValue>();
-
-		for (int i = 0; i < val.num_references; ++i)
-		{
-			SemanticValue r = val.reference(i);
-			File loc = r.range.start.file;
-
-			if (loc != null && loc.equal(d_document.location))
-			{
-				refs.add(r);
-			}
-		}
-
-		if (refs.size == 0)
+		if (refs.length <= 1)
 		{
 			return;
 		}
 
 		d_lastMergeId = d_scrollbarMarker.new_merge_id();
-
-		mark_reference(val);
 
 		foreach (SemanticValue r in refs)
 		{
@@ -692,20 +732,75 @@ class View
 		d_buffer.remove_tag(d_semanticTag, start, end);
 	}
 
+	private SemanticValue[] references_at_cursor(out SemanticValue? val, out int vidx)
+	{
+		SemanticValueSupport sem = d_document as SemanticValueSupport;
+		val = null;
+		vidx = -1;
+
+		if (sem == null)
+		{
+			return new SemanticValue[] {};
+		}
+
+		TextIter iter;
+		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
+
+		SourceLocation loc = new SourceLocation.iter(iter);
+		val = sem.semantics.find_inner_at(loc);
+
+		if (val == null)
+		{
+			return new SemanticValue[] {};
+		}
+
+		LinkedList<SemanticValue> refs = new LinkedList<SemanticValue>();
+
+		for (int i = 0; i < val.num_references; ++i)
+		{
+			SemanticValue r = val.reference(i);
+			File f = r.range.start.file;
+
+			if (f != null && f.equal(d_document.location))
+			{
+				refs.add(r);
+			}
+		}
+
+		refs.add(val);
+		refs.sort((CompareFunc)compare_ranges);
+
+		SemanticValue[] ret = refs.to_array();
+
+		for (int i = 0; i < ret.length; ++i)
+		{
+			if (ret[i] == val)
+			{
+				vidx = i;
+				break;
+			}
+		}
+
+		return ret;
+	}
+
+	private static int compare_ranges(SemanticValue a, SemanticValue b)
+	{
+		return a.range.compare_to(b.range);
+	}
+
 	private void update_references()
 	{
 		SemanticValueSupport sem = d_document as SemanticValueSupport;
-		TextIter iter;
 
 		if (sem == null)
 		{
 			return;
 		}
 
-		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
-
-		SourceLocation loc = new SourceLocation.iter(iter);
-		SemanticValue? v = sem.semantics.find_inner_at(loc);
+		SemanticValue? v;
+		int vidx;
+		SemanticValue[] refs = references_at_cursor(out v, out vidx);
 
 		if (v == d_semanticValue)
 		{
@@ -721,7 +816,7 @@ class View
 
 		if (d_semanticValue != null)
 		{
-			mark_references(d_semanticValue);
+			mark_references(refs);
 		}
 	}
 
@@ -733,6 +828,16 @@ class View
 	private void on_cursor_semantics_moved()
 	{
 		update_references();
+	}
+
+	private bool on_view_key_press(Gdk.EventKey event)
+	{
+		if (s_bindingSet == null)
+		{
+			return false;
+		}
+
+		return s_bindingSet.activate(event.keyval, event.state, this);
 	}
 }
 
