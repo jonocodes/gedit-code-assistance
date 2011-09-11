@@ -2,7 +2,15 @@ gedit code assistance is a plugin for gedit which provides code assistance for
 C, C++ and Objective-C by utilizing clang.
 
 Installation from git:
-1) Install the gedit-devel (>= 3.0) and llvm-devel (>= 2.8) packages
+
+1) Install the following packages for your distribution
+   (packages names can differ):
+
+	1) gedit-devel (>= 3.0)
+	2) llvm-devel (>= 2.8)
+	3) vala
+	4) libgee-devel
+
 2) Run:
 
 ./autogen.sh
