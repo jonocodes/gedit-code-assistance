@@ -727,8 +727,10 @@ class View : Object
 
 		SourceRange range = highlight_range(val);
 
-		d_document.source_range(range, out start, out end);
-		d_buffer.apply_tag(d_semanticTag, start, end);
+		if (d_document.source_range(range, out start, out end))
+		{
+			d_buffer.apply_tag(d_semanticTag, start, end);
+		}
 
 		d_scrollbarMarker.add_with_id(d_lastMergeId, range, d_refColor);
 	}
