@@ -84,7 +84,7 @@ class SourceIndex<T> : Object
 
 	public SourceIndex()
 	{
-		d_index = new Sequence<Wrapper>(null);
+		d_index = new Sequence<Wrapper>();
 	}
 
 	public void add(SourceRangeSupport range)
