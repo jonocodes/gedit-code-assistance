@@ -63,6 +63,14 @@ class SourceRange : Object, SourceRangeSupport
 		return other.d_end.compare_to(d_end);
 	}
 
+	public bool get_iters(Gtk.TextBuffer buffer,
+	                      out Gtk.TextIter start,
+	                      out Gtk.TextIter end)
+	{
+		return d_start.get_iter(buffer, out start) &&
+		       d_end.get_iter(buffer, out end);
+	}
+
 	public bool contains_range(SourceRange range)
 	{
 		return contains_location(range.start) && contains_location(range.end);
