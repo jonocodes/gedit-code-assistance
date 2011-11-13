@@ -118,6 +118,8 @@ class Document : Gcp.Document,
 	{
 		d_diagnostics.clear();
 
+		Log.debug("New diagnostics: %d", tu.num_diagnostics);
+
 		for (uint i = 0; i < tu.num_diagnostics; ++i)
 		{
 			CX.Diagnostic d = tu.get_diagnostic(i);
@@ -126,8 +128,11 @@ class Document : Gcp.Document,
 
 			var loc = Translator.source_location(d.location);
 
+			Log.debug("Diagnostic location [%d]: %s", i, loc.file == null ? null : loc.file.get_path());
+
 			if (loc.file == null || !loc.file.equal(location))
 			{
+				Log.debug("Diagnostic not for this file: %s", d.spelling.str());
 				continue;
 			}
 

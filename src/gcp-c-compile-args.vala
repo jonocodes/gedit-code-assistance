@@ -193,6 +193,13 @@ namespace Gcp.C
 				par = par.get_parent();
 			}
 
+			if (ret != null)
+			{
+				Log.debug("Resolved makefile for `%s': `%s'",
+				          file.get_path(),
+				          ret.get_path());
+			}
+
 			return ret;
 		}
 
@@ -349,6 +356,8 @@ namespace Gcp.C
 					case 'D':
 					case 'f':
 					case 'W':
+						Log.debug("gcc flag: `%s'", a);
+
 						// Append the flag
 						ret.add(a);
 
@@ -444,7 +453,16 @@ namespace Gcp.C
 			try
 			{
 				target = target_from_make(makefile, file);
+
+				Log.debug("Makefile make target for `%s': `%s'",
+				          file.get_path(),
+				          target);
+
 				args = flags_from_target(makefile, file, target);
+
+				Log.debug("Compile flags for `%s': `%s'",
+				          file.get_path(),
+				          string.joinv(", ", args));
 			}
 			catch (Error e)
 			{
