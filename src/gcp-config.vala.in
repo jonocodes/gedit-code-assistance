@@ -1,0 +1,10 @@
+namespace Gcp
+{
+	private class Config
+	{
+		public static string llvm_version()
+		{
+			return "@LLVM_VERSION@";
+		}
+	}
+}

@@ -36,7 +36,9 @@ vala_sources = \
 	gcp-c-compile-args.vala \
 	gcp-c-translation-unit.vala \
 	gcp-c-semantic-value.vala \
-	gcp-c-translator.vala
+	gcp-c-translator.vala \
+	gcp-log.vala \
+	gcp-config.vala
 
 SOURCES = \
 	$(vala_sources) \

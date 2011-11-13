@@ -87,6 +87,8 @@ LDFLAGS="$OLDLDFLAGS"
 LLVM_VERSION=$($LLVM_CONFIG --version)
 AC_DEFINE_UNQUOTED([LLVM_VERSION], "$LLVM_VERSION", [LLVM version])
 
+AC_SUBST(LLVM_VERSION)
+
 AC_ARG_ENABLE([local],
               AS_HELP_STRING([--enable-local],[enable local install (in user directory)]),
               [enable_local=$enableval],
@@ -119,6 +121,7 @@ AC_CONFIG_FILES([
 Makefile
 data/Makefile
 src/Makefile
+src/gcp-config.vala
 ])
 
 AC_OUTPUT
