@@ -418,8 +418,9 @@ namespace Gcp.C
 			}
 
 			string[] retargs;
+			string[] parts = outstr.substring(idx + fakecc.length).split("\n");
 
-			Shell.parse_argv(outstr.substring(idx + fakecc.length), out retargs);
+			Shell.parse_argv(parts[0], out retargs);
 
 			/* Copy only some of the flags that we are actually interested in */
 			return filter_flags(makefile, source, retargs);
