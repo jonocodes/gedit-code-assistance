@@ -69,6 +69,20 @@ class View : Object
 		}
 	}
 
+	private void scroll_in_view(TextIter iter)
+	{
+		Gdk.Rectangle vrect;
+		Gdk.Rectangle irect;
+
+		d_view.get_visible_rect(out vrect);
+		d_view.get_iter_location(iter, out irect);
+
+		if (irect.y < vrect.y || irect.y + irect.height > vrect.y + vrect.height)
+		{
+			d_view.scroll_to_iter(iter, 0, true, 0, 0.5);
+		}
+	}
+
 	private void move_cursor_to_semantic_value(SemanticValue? val)
 	{
 		if (val == null)
@@ -92,6 +106,7 @@ class View : Object
 		}
 
 		d_buffer.select_range(start, end);
+		scroll_in_view(start);
 	}
 
 	[Signal(action = true)]
