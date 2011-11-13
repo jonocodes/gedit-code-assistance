@@ -84,7 +84,11 @@ class SourceIndex<T> : Object
 
 	public SourceIndex()
 	{
+#if VALA_0_14
 		d_index = new Sequence<Wrapper>();
+#else
+		d_index = new Sequence<Wrapper>(null);
+#endif
 	}
 
 	public void add(SourceRangeSupport range)
