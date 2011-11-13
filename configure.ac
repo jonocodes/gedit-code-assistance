@@ -103,8 +103,8 @@ if test "x$enable_local" = "xyes"; then
 	geditlibdir="$HOME/.local/share"
 	geditdatadir="$HOME/.local/share"
 else
-	geditlibdir=$($PKG_CONFIG --variable=libdir gedit)
-	geditdatadir=$($PKG_CONFIG --variable=prefix gedit)/share
+	geditlibdir="${libdir}"
+	geditdatadir="${datadir}"
 fi
 
 GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
@@ -122,6 +122,7 @@ Makefile
 data/Makefile
 src/Makefile
 src/gcp-config.vala
+data/gcp.plugin
 ])
 
 AC_OUTPUT

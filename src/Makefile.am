@@ -44,6 +44,9 @@ SOURCES = \
 	$(vala_sources) \
 	gcp-utils-c.c
 
+NOINSTHFILES = \
+	gcp-utils-c.h
+
 BUILT_SOURCES = $(vala_sources:.vala=.c)
 
 libgcp_la_SOURCES = $(SOURCES)
@@ -62,5 +65,7 @@ CLEANFILES = \
 	$(BUILT_SOURCES)
 
 MAINTAINERCLEANFILES = $(generated)
+
+EXTRA_DIST = $(NOINSTHFILES)
 
 -include $(top_srcdir)/git.mk

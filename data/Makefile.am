@@ -6,4 +6,4 @@ gcpdata_DATA = gcp.css
 
 EXTRA_DIST = \
 	gcp.plugin \
-	gcp.gedit-plugin
+	gcp.css
