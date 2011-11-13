@@ -426,7 +426,7 @@ namespace Gcp.C
 			return filter_flags(makefile, source, retargs);
 		}
 
-		private void on_makefile_changed(Makefile makefile)
+		private async void makefile_changed_async(Makefile makefile)
 		{
 			ThreadFunc<void *> func = () => {
 				foreach (File file in makefile.sources)
@@ -440,10 +440,16 @@ namespace Gcp.C
 			try
 			{
 				Thread.create<void *>(func, false);
+				yield;
 			}
 			catch
 			{
 			}
+		}
+
+		private void on_makefile_changed(Makefile makefile)
+		{
+			makefile_changed_async.begin(makefile);
 		}
 
 		private void find_for_makefile(File makefile, File file)
