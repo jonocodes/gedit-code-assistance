@@ -100,10 +100,27 @@ class SourceLocation : Object, SourceRangeSupport
 
 		if (iter.get_line() != d_line - 1)
 		{
+			if (iter.is_end())
+			{
+				return true;
+			}
+
 			return false;
 		}
 
-		return iter.forward_chars(d_column - 1);
+		if (d_column <= 1)
+		{
+			return true;
+		}
+
+		bool ret = iter.forward_chars(d_column - 1);
+
+		if (!ret && iter.is_end())
+		{
+			ret = true;
+		}
+
+		return ret;
 	}
 
 	public bool buffer_coordinates(TextView view, out Gdk.Rectangle rect)
