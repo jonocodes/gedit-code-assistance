@@ -100,7 +100,6 @@ class TranslationUnit
 	{
 		if (tainted)
 		{
-			stdout.printf("tainted...\n");
 			MainContext ctx = MainContext.get_thread_default();
 			bool exitit = false;
 
@@ -154,8 +153,6 @@ class TranslationUnit
 				d_slock.unlock();
 				break;
 			}
-
-			stdout.printf("Asked to reparse\n");
 
 			UnsavedFile[] uf = (owned)d_unsaved;
 			d_unsaved = null;
