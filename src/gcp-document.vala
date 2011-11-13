@@ -120,37 +120,12 @@ class Document : GLib.Object
 
 	private bool source_location(SourceLocation location, out TextIter iter)
 	{
-		d_document.get_iter_at_line(out iter, location.line - 1);
-
-		if (iter.get_line() != location.line - 1)
-		{
-			return false;
-		}
-
-		if (location.column > 1)
-		{
-			TextIter enditer;
-
-			d_document.get_end_iter(out enditer);
-
-			if (!iter.forward_chars(location.column - 1) &&
-			    !iter.equal(enditer))
-			{
-				return false;
-			}
-
-			return iter.get_line() == location.line - 1;
-		}
-		else
-		{
-			return true;
-		}
+		return location.get_iter(d_document, out iter);
 	}
 
 	public bool source_range(SourceRange range, out TextIter start, out TextIter end)
 	{
-		return source_location(range.start, out start) &&
-		       source_location(range.end, out end);
+		return range.get_iters(d_document, out start, out end);
 	}
 
 	public static string? mark_category_for_severity(Diagnostic.Severity severity)
