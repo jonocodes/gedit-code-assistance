@@ -726,10 +726,19 @@ class View : Object
 		{
 			// We special case this because we really don't want to highlight
 			// the whole function definition
-			SourceLocation paramstart = val.down.range.start.copy();
 
-			paramstart = new SourceLocation(paramstart.file, paramstart.line, paramstart.column - 1);
-			range = new SourceRange(val.range.start.copy(), paramstart);
+			SemanticValue? par = val.find_child(SemanticValue.Kind.PARAMETER);
+
+			if (par != null)
+			{
+				SourceLocation paramstart = par.range.start.copy();
+
+				paramstart = new SourceLocation(paramstart.file,
+				                                paramstart.line,
+				                                paramstart.column - 1);
+
+				range = new SourceRange(val.range.start.copy(), paramstart);
+			}
 		}
 
 		return range;
