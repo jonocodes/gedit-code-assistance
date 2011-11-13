@@ -63,6 +63,23 @@ abstract class SemanticValue : Object, SourceRangeSupport
 		get { return d_rtype; }
 	}
 
+	public SemanticValue? find_child(Kind kind)
+	{
+		SemanticValue? child = down;
+
+		while (child != null)
+		{
+			if (child.kind == kind)
+			{
+				return child;
+			}
+
+			child = child.next;
+		}
+
+		return child;
+	}
+
 	public abstract SemanticValue? definition
 	{
 		owned get;
