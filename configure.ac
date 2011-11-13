@@ -120,9 +120,10 @@ AC_SUBST(GEDIT_LIBS)
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
+data/gcp.plugin
 src/Makefile
 src/gcp-config.vala
-data/gcp.plugin
+vapi/Makefile
 ])
 
 AC_OUTPUT
