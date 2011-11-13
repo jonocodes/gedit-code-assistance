@@ -69,7 +69,7 @@ class Document : GLib.Object
 		update_modified();
 
 		d_document.modified_changed.connect(on_document_modified_changed);
-		d_document.changed.connect(on_document_changed);
+		d_document.end_user_action.connect(on_document_end_user_action);
 		d_document.notify["location"].connect(on_location_changed);
 		d_document.saved.connect(on_document_saved);
 
@@ -105,7 +105,7 @@ class Document : GLib.Object
 		d_document.modified_changed.disconnect(on_document_modified_changed);
 		d_document.notify["location"].disconnect(on_location_changed);
 
-		d_document.changed.disconnect(on_document_changed);
+		d_document.end_user_action.disconnect(on_document_end_user_action);
 		d_document.saved.disconnect(on_document_saved);
 
 		DiagnosticSupport diag = this as DiagnosticSupport;
@@ -375,7 +375,7 @@ class Document : GLib.Object
 		}
 	}
 
-	private void on_document_changed()
+	private void on_document_end_user_action()
 	{
 		if (d_modified)
 		{
