@@ -461,6 +461,14 @@ namespace Gcp.C
 
 				args = flags_from_target(makefile, file, target);
 
+				// Note: this is a hack but it seems clang 2.8 will not properly
+				// add its default include search directories
+				if (Config.llvm_version() == "2.8")
+				{
+					args += "-I";
+					args += "/usr/lib/clang/2.8/include";
+				}
+
 				Log.debug("Compile flags for `%s': `%s'",
 				          file.get_path(),
 				          string.joinv(", ", args));
