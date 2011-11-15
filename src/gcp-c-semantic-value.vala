@@ -9,7 +9,7 @@ class SemanticValue : Gcp.SemanticValue
 
 	private class Translator
 	{
-		private CursorMappedFunc d_mapped;
+		private unowned CursorMappedFunc d_mapped;
 		private SemanticValue? d_parent;
 		private SemanticValue? d_current;
 		private File? d_source;

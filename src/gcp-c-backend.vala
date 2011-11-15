@@ -219,7 +219,7 @@ class Backend : Gcp.Backend
 			Source.remove(d_changedId);
 		}
 
-		d_changedId = Timeout.add(1000, () => {
+		d_changedId = Timeout.add(500, () => {
 			d_changedId = 0;
 
 			reparse();

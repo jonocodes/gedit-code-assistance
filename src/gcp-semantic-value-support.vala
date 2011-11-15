@@ -3,10 +3,9 @@ namespace Gcp
 
 interface SemanticValueSupport : Gcp.Document
 {
-	public abstract SourceIndex<SemanticValue> semantics
-	{
-		get;
-	}
+	public delegate void WithSemanticValueCallback(SourceIndex<SemanticValue> diagnostics);
+
+	public abstract void with_semantics(WithSemanticValueCallback callback);
 
 	public signal void semantic_values_updated();
 }

@@ -65,7 +65,6 @@ class Document : Gcp.Document,
 	private TranslationUnit d_tu;
 	private SymbolBrowser d_symbols;
 	private SourceIndex<Diagnostic> d_diagnostics;
-	private HashMap<CursorWrapper, SemanticValue> d_semanticsMap;
 	private SourceIndex<SemanticValue> d_semantics;
 
 	public Document(Gedit.Document document)
@@ -88,14 +87,20 @@ class Document : Gcp.Document,
 		}
 	}
 
-	public SourceIndex<Diagnostic> diagnostics
+	public void with_diagnostics(DiagnosticSupport.WithDiagnosticsCallback callback)
 	{
-		get { return d_diagnostics; }
+		lock(d_diagnostics)
+		{
+			callback(d_diagnostics);
+		}
 	}
 
-	public SourceIndex<SemanticValue> semantics
+	public void with_semantics(SemanticValueSupport.WithSemanticValueCallback callback)
 	{
-		get { return d_semantics; }
+		lock(d_semantics)
+		{
+			callback(d_semantics);
+		}
 	}
 
 	public TranslationUnit translation_unit
@@ -116,7 +121,7 @@ class Document : Gcp.Document,
 
 	private void update_diagnostics(CX.TranslationUnit tu)
 	{
-		d_diagnostics.clear();
+		SourceIndex<Diagnostic> ndiag = new SourceIndex<Diagnostic>();
 
 		Log.debug("New diagnostics: %d", tu.num_diagnostics);
 
@@ -145,9 +150,9 @@ class Document : Gcp.Document,
 				SourceRange range = Translator.source_range(d.get_range(j));
 
 				if (range.start.file != null &&
-				    range.end.file != null &&
-				    range.start.file.equal(location) &&
-				    range.end.file.equal(location))
+					range.end.file != null &&
+					range.start.file.equal(location) &&
+					range.end.file.equal(location))
 				{
 					clip_location(range.start);
 					clip_location(range.end);
@@ -166,9 +171,9 @@ class Document : Gcp.Document,
 				SourceRange r = Translator.source_range(range);
 
 				if (r.start.file != null &&
-				    r.end.file != null &&
-				    r.start.file.equal(location) &&
-				    r.end.file.equal(location))
+					r.end.file != null &&
+					r.start.file.equal(location) &&
+					r.end.file.equal(location))
 				{
 					clip_location(r.start);
 					clip_location(r.end);
@@ -177,37 +182,41 @@ class Document : Gcp.Document,
 				}
 			}
 
-			d_diagnostics.add(new Diagnostic(severity,
-			                                 loc,
-			                                 ranges.to_array(),
-			                                 fixits,
-			                                 d.spelling.str()));
+			ndiag.add(new Diagnostic(severity,loc,
+			                         ranges.to_array(),
+			                         fixits,
+			                         d.spelling.str()));
 		}
 
-		diagnostics_updated();
+		lock(d_diagnostics)
+		{
+			d_diagnostics = ndiag;
+		}
 	}
 
 	private void update_semantics(CX.TranslationUnit tu)
 	{
-		d_semanticsMap = new HashMap<CursorWrapper, SemanticValue>(CursorWrapper.hash,
-		                                                           (EqualFunc)CursorWrapper.equal);
+		SourceIndex<SemanticValue> sems = new SourceIndex<SemanticValue>();
 
-		d_semantics.clear();
+		HashMap<CursorWrapper, SemanticValue> semmap;
+
+		semmap = new HashMap<CursorWrapper, SemanticValue>(CursorWrapper.hash,
+		                                                  (EqualFunc)CursorWrapper.equal);
 
 		SemanticValue.translate(tu.cursor, location, (cursor, val) => {
-			d_semantics.add(val);
-			d_semanticsMap[new CursorWrapper(cursor)] = val;
+			sems.add(val);
+			semmap[new CursorWrapper(cursor)] = val;
 
 			if (Translator.is_reference(cursor))
 			{
 				CursorWrapper wrapper = new CursorWrapper(cursor.referenced());
 
-				if (!d_semanticsMap.has_key(wrapper))
+				if (!semmap.has_key(wrapper))
 				{
-					d_semanticsMap[wrapper] = new SemanticValue(cursor.referenced());
+					semmap[wrapper] = new SemanticValue(cursor.referenced());
 				}
 
-				SemanticValue rr = d_semanticsMap[wrapper];
+				SemanticValue rr = semmap[wrapper];
 
 				for (int i = 0; i < rr.num_references; ++i)
 				{
@@ -222,15 +231,23 @@ class Document : Gcp.Document,
 			}
 		});
 
-		semantic_values_updated();
+		lock(d_semantics)
+		{
+			d_semantics = sems;
+		}
 	}
 
 	private void on_tu_update()
 	{
 		/* Refill the symbol browser */
-		d_tu.with_translation_unit((tu) => {
+		d_tu.with_translation_unit.begin((tu) => {
 			update_diagnostics(tu);
 			update_semantics(tu);
+		}, (obj, res) => {
+			d_tu.with_translation_unit.end(res);
+
+			diagnostics_updated();
+			semantic_values_updated();
 		});
 	}
 }

@@ -96,44 +96,59 @@ class TranslationUnit
 		}
 	}
 
-	public void with_translation_unit(WithTranslationUnitCallback callback)
+	public async void with_translation_unit(WithTranslationUnitCallback callback)
 	{
-		if (tainted)
-		{
-			MainContext ctx = MainContext.get_thread_default();
-			bool exitit = false;
+		SourceFunc cb = with_translation_unit.callback;
 
-			while (!exitit)
+		ThreadFunc<void *> run = () => {
+			if (tainted)
 			{
-				ctx.iteration(true);
+				MainContext ctx = MainContext.get_thread_default();
+				bool exitit = false;
 
+				while (!exitit)
+				{
+					ctx.iteration(true);
+
+					d_lock.lock();
+
+					exitit = !d_tainted;
+
+					if (exitit)
+					{
+						if (d_tu != null)
+						{
+							callback(d_tu);
+						}
+					}
+
+					d_lock.unlock();
+				}
+			}
+			else
+			{
 				d_lock.lock();
 
-				exitit = !d_tainted;
-
-				if (exitit)
+				if (d_tu != null)
 				{
-					if (d_tu != null)
-					{
-						callback(d_tu);
-					}
+					callback(d_tu);
 				}
 
 				d_lock.unlock();
+
 			}
 
-			return;
-		}
-		else
+			Idle.add((owned)cb);
+			return null;
+		};
+
+		try
 		{
-			d_lock.lock();
-
-			if (d_tu != null)
-			{
-				callback(d_tu);
-			}
-
-			d_lock.unlock();
+			Thread.create<void *>(run, false);
+			yield;
+		}
+		catch
+		{
 		}
 	}
 
@@ -187,7 +202,7 @@ class TranslationUnit
 
 			d_tainted = false;
 
-			stdout.printf("Took %f seconds to parse...\n", elapsed);
+			Log.debug("Took %f seconds to parse...", elapsed);
 
 			d_lock.unlock();
 

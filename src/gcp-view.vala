@@ -497,11 +497,25 @@ class View : Object
 
 	private void on_semantics_updated(SemanticValueSupport semantics)
 	{
+		Timer timer = new Timer();
+		double elapsed = 0;
+
+		timer.start();
+
 		update_references();
+
+		elapsed = timer.elapsed();
+
+		Log.debug("Semantics update in: %f seconds...", elapsed);
 	}
 
 	private void on_diagnostic_updated(DiagnosticSupport diagnostics)
 	{
+		Timer timer = new Timer();
+		double elapsed = 0;
+
+		timer.start();
+
 		d_scrollbarMarker.clear();
 
 		DiagnosticColors colors;
@@ -524,34 +538,39 @@ class View : Object
 
 		uint mid = d_scrollbarMarker.new_merge_id();
 
-		foreach (Diagnostic d in diagnostics.diagnostics)
-		{
-			Gdk.RGBA color = colors[d.severity];
-			Gdk.RGBA mix = mixed[d.severity];
-
-			foreach (SourceRange range in d.ranges)
+		diagnostics.with_diagnostics((diagnostics) => {
+			foreach (Diagnostic d in diagnostics)
 			{
-				d_scrollbarMarker.add_with_id(mid, range, color);
+				Gdk.RGBA color = colors[d.severity];
+				Gdk.RGBA mix = mixed[d.severity];
 
-				if (range.start.line == range.end.line &&
-				    range.start.column == range.end.column)
+				foreach (SourceRange range in d.ranges)
 				{
-					if (diagnostic_is_at_end(range.start))
+					d_scrollbarMarker.add_with_id(mid, range, color);
+
+					if (range.start.line == range.end.line &&
+						range.start.column == range.end.column)
 					{
-						add_diagnostic_at_end(range.start, mix);
+						if (diagnostic_is_at_end(range.start))
+						{
+							add_diagnostic_at_end(range.start, mix);
+						}
 					}
 				}
-			}
 
-			d_scrollbarMarker.add_with_id(mid, d.location.range, color);
+				d_scrollbarMarker.add_with_id(mid, d.location.range, color);
 
-			if (diagnostic_is_at_end(d.location))
-			{
-				add_diagnostic_at_end(d.location, mix);
+				if (diagnostic_is_at_end(d.location))
+				{
+					add_diagnostic_at_end(d.location, mix);
+				}
 			}
-		}
+		});
 
 		update_diagnostic_message();
+		elapsed = timer.elapsed();
+
+		Log.debug("Diagnostics update in: %f seconds...", elapsed);
 	}
 
 	private void on_notify_buffer()
@@ -807,8 +826,13 @@ class View : Object
 		d_buffer.get_iter_at_mark(out iter, d_buffer.get_insert());
 
 		SourceLocation loc = new SourceLocation.iter(iter);
+		SemanticValue? ret = null;
 
-		return sem.semantics.find_inner_at(loc);
+		sem.with_semantics((semantics) => {
+			ret = semantics.find_inner_at(loc);
+		});
+
+		return ret;
 	}
 
 	private SemanticValue[] references_at_cursor(out SemanticValue? val, out int vidx)

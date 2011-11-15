@@ -197,8 +197,6 @@ class Document : GLib.Object
 		TextIter end;
 
 		DiagnosticSupport sup = this as DiagnosticSupport;
-		TextTag? tag = sup.tags[diagnostic.severity];
-		string? category = mark_category_for_severity(diagnostic.severity);
 
 		for (uint i = 0; i < diagnostic.ranges.length; ++i)
 		{
@@ -250,10 +248,12 @@ class Document : GLib.Object
 
 		remove_marks();
 
-		foreach (Diagnostic diag in diagnostic.diagnostics)
-		{
-			mark_diagnostic(diag);
-		}
+		diagnostic.with_diagnostics((diagnostics) => {
+			foreach (Diagnostic diag in diagnostics)
+			{
+				mark_diagnostic(diag);
+			}
+		});
 	}
 
 	private void set_location(File? location)

@@ -28,16 +28,20 @@ interface DiagnosticSupport : Document
 
 	public signal void diagnostics_updated();
 
-	public abstract SourceIndex<Diagnostic> diagnostics { get; }
+	public delegate void WithDiagnosticsCallback(SourceIndex<Diagnostic> diagnostics);
+
+	public abstract void with_diagnostics(WithDiagnosticsCallback callback);
 
 	public Diagnostic[] find_at(SourceLocation location)
 	{
 		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
 
-		foreach (Diagnostic d in diagnostics.find_at(location))
-		{
-			ret.add(d);
-		}
+		with_diagnostics((diagnostics) => {
+			foreach (Diagnostic d in diagnostics.find_at(location))
+			{
+				ret.add(d);
+			}
+		});
 
 		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
 
@@ -59,10 +63,12 @@ interface DiagnosticSupport : Document
 	{
 		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
 
-		foreach (Diagnostic d in diagnostics.find_at_line(line))
-		{
-			ret.add(d);
-		}
+		with_diagnostics((diagnostics) => {
+			foreach (Diagnostic d in diagnostics.find_at_line(line))
+			{
+				ret.add(d);
+			}
+		});
 
 		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
 
