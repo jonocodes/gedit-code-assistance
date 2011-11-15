@@ -474,6 +474,11 @@ namespace Gcp.C
 					args += "-I";
 					args += "/usr/lib/clang/2.8/include";
 				}
+				else if (Config.llvm_version() == "2.9")
+				{
+					args += "-I";
+					args += "/usr/lib/clang/2.9/include";
+				}
 
 				Log.debug("Compile flags for `%s': `%s'",
 				          file.get_path(),
