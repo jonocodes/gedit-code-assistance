@@ -1,4 +1,13 @@
 ===========================
+gedit-code-assistance 0.1.2
+===========================
+
+New Features and Fixes
+======================
+Move various tasks to background threads (Jesse van den Kieboom)
+Misc bugfixes.
+
+===========================
 gedit-code-assistance 0.1.1
 ===========================
 

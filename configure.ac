@@ -2,7 +2,7 @@ AC_PREREQ(2.63.2)
 
 m4_define(gedit_code_assistance_major_version, 0)
 m4_define(gedit_code_assistance_minor_version, 1)
-m4_define(gedit_code_assistance_micro_version, 1)
+m4_define(gedit_code_assistance_micro_version, 2)
 m4_define(gedit_code_assistance_version, gedit_code_assistance_major_version.gedit_code_assistance_minor_version.gedit_code_assistance_micro_version)
 
 AC_INIT([gedit-code-assistance],[gedit_code_assistance_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=gedit],[gedit-code-assistance],[http://projects.gnome.org/gedit/])
