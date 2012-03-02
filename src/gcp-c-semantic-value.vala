@@ -73,7 +73,7 @@ class SemanticValue : Gcp.SemanticValue
 	private unowned Gcp.SemanticValue? d_previous;
 	private unowned Gcp.SemanticValue? d_up;
 	private Gcp.SemanticValue? d_down;
-	private ArrayList<unowned SemanticValue> d_references;
+	private ArrayList<SemanticValue *> d_references;
 
 	public SemanticValue(CX.Cursor cursor)
 	{
@@ -81,8 +81,18 @@ class SemanticValue : Gcp.SemanticValue
 		     Gcp.C.Translator.semantic_kind(cursor),
 		     Gcp.C.Translator.semantic_reference_type(cursor));
 
-		d_references = new ArrayList<SemanticValue>();
+		d_references = new ArrayList<SemanticValue *>();
 		d_cursor = cursor;
+	}
+
+	construct
+	{
+		stdout.printf("Created sem val: %p\n", this);
+	}
+
+	~SemanticValue()
+	{
+		stdout.printf("Destroyed sem val: %p\n", this);
 	}
 
 	public CX.Cursor get_cursor()
@@ -183,6 +193,7 @@ class SemanticValue : Gcp.SemanticValue
 	{
 		Translator tr = new Translator(mapped, source);
 		SemanticValue ret = new SemanticValue(cursor);
+
 		tr.translate(ret);
 
 		return ret;
