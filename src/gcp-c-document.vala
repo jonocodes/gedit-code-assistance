@@ -123,7 +123,7 @@ class Document : Gcp.Document,
 	{
 		SourceIndex<Diagnostic> ndiag = new SourceIndex<Diagnostic>();
 
-		Log.debug("New diagnostics: %d", tu.num_diagnostics);
+		Log.debug("New diagnostics: %u", tu.num_diagnostics);
 
 		for (uint i = 0; i < tu.num_diagnostics; ++i)
 		{
@@ -133,7 +133,7 @@ class Document : Gcp.Document,
 
 			var loc = Translator.source_location(d.location);
 
-			Log.debug("Diagnostic location [%d]: %s", i, loc.file == null ? null : loc.file.get_path());
+			Log.debug("Diagnostic location [%u]: %s", i, loc.file == null ? null : loc.file.get_path());
 
 			if (loc.file == null || !loc.file.equal(location))
 			{
