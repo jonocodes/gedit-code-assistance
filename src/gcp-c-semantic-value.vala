@@ -9,14 +9,14 @@ class SemanticValue : Gcp.SemanticValue
 
 	private class Translator
 	{
-		private unowned CursorMappedFunc d_mapped;
+		private CursorMappedFunc d_mapped;
 		private SemanticValue? d_parent;
 		private SemanticValue? d_current;
 		private File? d_source;
 
-		public Translator(CursorMappedFunc mapped, File? source)
+		public Translator(owned CursorMappedFunc mapped, File? source)
 		{
-			d_mapped = mapped;
+			d_mapped = (owned)mapped;
 			d_source = source;
 		}
 
@@ -189,9 +189,9 @@ class SemanticValue : Gcp.SemanticValue
 
 	public static SemanticValue? translate(CX.Cursor cursor,
 	                                       File? source,
-	                                       CursorMappedFunc mapped)
+	                                       owned CursorMappedFunc mapped)
 	{
-		Translator tr = new Translator(mapped, source);
+		Translator tr = new Translator((owned)mapped, source);
 		SemanticValue ret = new SemanticValue(cursor);
 
 		tr.translate(ret);
