@@ -20,7 +20,7 @@
 namespace Gcp
 {
 
-class SymbolBrowser : Gtk.TreeStore
+public class SymbolBrowser : Gtk.TreeStore
 {
 	private bool d_tainted;
 

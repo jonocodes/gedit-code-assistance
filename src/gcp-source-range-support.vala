@@ -19,7 +19,7 @@
 namespace Gcp
 {
 
-interface SourceRangeSupport : Object
+public interface SourceRangeSupport : Object
 {
 	public abstract SourceRange? range
 	{

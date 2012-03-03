@@ -22,7 +22,7 @@ using Gee;
 namespace Gcp
 {
 
-class Diagnostic : Object, SourceRangeSupport
+public class Diagnostic : Object, SourceRangeSupport
 {
 	public enum Severity
 	{

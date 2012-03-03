@@ -22,7 +22,7 @@ using Gtk;
 namespace Gcp
 {
 
-class SourceLocation : Object, SourceRangeSupport
+public class SourceLocation : Object, SourceRangeSupport
 {
 	private File? d_file;
 	private int d_line;

@@ -22,7 +22,7 @@ using Gee;
 namespace Gcp
 {
 
-class SourceIndex<T> : Object
+public class SourceIndex<T> : Object
 {
 	public class Wrapper : Object
 	{

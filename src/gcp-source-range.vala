@@ -20,7 +20,7 @@
 namespace Gcp
 {
 
-class SourceRange : Object, SourceRangeSupport
+public class SourceRange : Object, SourceRangeSupport
 {
 	private SourceLocation d_start;
 	private SourceLocation d_end;

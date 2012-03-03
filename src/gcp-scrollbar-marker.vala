@@ -23,7 +23,7 @@ using Gee;
 namespace Gcp
 {
 
-class ScrollbarMarker
+public class ScrollbarMarker
 {
 	public class Marker
 	{
