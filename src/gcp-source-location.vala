@@ -127,6 +127,8 @@ public class SourceLocation : Object, SourceRangeSupport
 	{
 		TextIter iter;
 
+		rect = Gdk.Rectangle();
+
 		if (!get_iter(view.buffer, out iter))
 		{
 			return false;

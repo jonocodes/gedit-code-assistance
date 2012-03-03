@@ -67,8 +67,13 @@ public class SourceRange : Object, SourceRangeSupport
 	                      out Gtk.TextIter start,
 	                      out Gtk.TextIter end)
 	{
-		return d_start.get_iter(buffer, out start) &&
-		       d_end.get_iter(buffer, out end);
+		bool rets;
+		bool rete;
+
+		rets = d_start.get_iter(buffer, out start);
+		rete = d_end.get_iter(buffer, out end);
+
+		return rets && rete;
 	}
 
 	public bool contains_range(SourceRange range)
