@@ -189,6 +189,7 @@ class View : Object
 			d_semanticValue = null;
 		}
 
+		unregister_backend();
 		d_buffer = null;
 	}
 
@@ -290,12 +291,11 @@ class View : Object
 	private void update_backend()
 	{
 		/* Update the backend according to the current language on the buffer */
-		var lang = d_buffer.language;
-		Backend backend = null;
+		Backend? backend = null;
 
-		if (lang != null)
+		if (d_buffer != null && d_buffer.language != null)
 		{
-			backend = BackendManager.instance[lang.id];
+			backend = BackendManager.instance[d_buffer.language.id];
 		}
 
 		unregister_backend();
