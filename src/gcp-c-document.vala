@@ -213,7 +213,10 @@ class Document : Gcp.Document,
 
 				if (!semmap.has_key(wrapper))
 				{
-					semmap[wrapper] = new SemanticValue(cursor.referenced());
+					var refval = new SemanticValue(cursor.referenced());
+
+					semmap[wrapper] = refval;
+					sems.add(refval);
 				}
 
 				SemanticValue rr = semmap[wrapper];
