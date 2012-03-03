@@ -30,6 +30,7 @@ class Document : GLib.Object
 	private string? d_text;
 	private File? d_location;
 	private bool d_tainted;
+	private bool d_dispose_ran;
 
 	public signal void location_changed(File? previous_location);
 	public signal void changed();
@@ -100,8 +101,15 @@ class Document : GLib.Object
 		d_document.remove_source_marks(start, end, error_mark_category);
 	}
 
-	~Document()
+	public override void dispose()
 	{
+		if (d_dispose_ran)
+		{
+			return;
+		}
+
+		d_dispose_ran = true;
+
 		d_document.modified_changed.disconnect(on_document_modified_changed);
 		d_document.notify["location"].disconnect(on_location_changed);
 
@@ -113,7 +121,6 @@ class Document : GLib.Object
 		if (diag != null)
 		{
 			diag.diagnostics_updated.disconnect(on_diagnostic_updated);
-
 			remove_marks();
 		}
 	}
