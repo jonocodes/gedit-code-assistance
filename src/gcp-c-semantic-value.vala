@@ -85,16 +85,6 @@ class SemanticValue : Gcp.SemanticValue
 		d_cursor = cursor;
 	}
 
-	construct
-	{
-		stdout.printf("Created sem val: %p\n", this);
-	}
-
-	~SemanticValue()
-	{
-		stdout.printf("Destroyed sem val: %p\n", this);
-	}
-
 	public CX.Cursor get_cursor()
 	{
 		return d_cursor;
