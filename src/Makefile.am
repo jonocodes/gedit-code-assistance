@@ -31,14 +31,16 @@ vala_sources = \
 	gcp-diagnostic-tags.vala \
 	gcp-diagnostic-support.vala \
 	gcp-diagnostic-message.vala \
-	gcp-c-backend.vala \
-	gcp-c-document.vala \
-	gcp-c-compile-args.vala \
-	gcp-c-translation-unit.vala \
-	gcp-c-semantic-value.vala \
-	gcp-c-translator.vala \
 	gcp-log.vala \
 	gcp-config.vala
+
+vala_sources += \
+	backends/c/gcp-c-backend.vala \
+	backends/c/gcp-c-document.vala \
+	backends/c/gcp-c-compile-args.vala \
+	backends/c/gcp-c-translation-unit.vala \
+	backends/c/gcp-c-semantic-value.vala \
+	backends/c/gcp-c-translator.vala
 
 SOURCES = \
 	$(vala_sources) \
@@ -51,7 +53,7 @@ BUILT_SOURCES = $(vala_sources:.vala=.c)
 
 libgcp_la_SOURCES = $(SOURCES)
 
-libgcp_la_CFLAGS = $(GCP_CFLAGS) $(GEDIT_CFLAGS) $(LLVM_CFLAGS) -Wimplicit-function-declaration -Wno-unused-value -Wno-ignored-qualifiers -Wno-conversion -Wno-unused-but-set-variable -Wno-unused-label
+libgcp_la_CFLAGS = $(GCP_CFLAGS) $(GEDIT_CFLAGS) $(LLVM_CFLAGS) -w
 libgcp_la_LDFLAGS = -module -shared -avoid-version $(GCP_LIBS) $(LLVM_LIBS) $(GEDIT_LIBS)
 
 valapkgs = gio-2.0 gee-1.0 clang gcp gtk+-3.0 gtksourceview-3.0 gedit-3.0 libpeas-1.0

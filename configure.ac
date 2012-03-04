@@ -17,7 +17,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_LIBTOOL
 
-AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability])
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability subdir-objects])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
 
