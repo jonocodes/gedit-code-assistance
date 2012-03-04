@@ -103,26 +103,26 @@ class Document : GLib.Object
 
 	public override void dispose()
 	{
-		if (d_dispose_ran)
+		if (!d_dispose_ran)
 		{
-			return;
+			d_dispose_ran = true;
+
+			d_document.modified_changed.disconnect(on_document_modified_changed);
+			d_document.notify["location"].disconnect(on_location_changed);
+
+			d_document.end_user_action.disconnect(on_document_end_user_action);
+			d_document.saved.disconnect(on_document_saved);
+
+			DiagnosticSupport diag = this as DiagnosticSupport;
+
+			if (diag != null)
+			{
+				diag.diagnostics_updated.disconnect(on_diagnostic_updated);
+				remove_marks();
+			}
 		}
 
-		d_dispose_ran = true;
-
-		d_document.modified_changed.disconnect(on_document_modified_changed);
-		d_document.notify["location"].disconnect(on_location_changed);
-
-		d_document.end_user_action.disconnect(on_document_end_user_action);
-		d_document.saved.disconnect(on_document_saved);
-
-		DiagnosticSupport diag = this as DiagnosticSupport;
-
-		if (diag != null)
-		{
-			diag.diagnostics_updated.disconnect(on_diagnostic_updated);
-			remove_marks();
-		}
+		base.dispose();
 	}
 
 	private bool source_location(SourceLocation location, out TextIter iter)
