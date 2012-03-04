@@ -43,7 +43,7 @@ interface DiagnosticSupport : Document
 			}
 		});
 
-		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
+		ret.sort_with_data((CompareDataFunc)sort_on_severity);
 
 		return ret.to_array();
 	}
@@ -70,7 +70,7 @@ interface DiagnosticSupport : Document
 			}
 		});
 
-		ret.sort_with_data<Diagnostic>((CompareDataFunc)sort_on_severity);
+		ret.sort_with_data((CompareDataFunc)sort_on_severity);
 
 		return ret.to_array();
 	}
