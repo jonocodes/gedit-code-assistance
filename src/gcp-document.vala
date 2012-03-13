@@ -22,7 +22,7 @@ using Gtk;
 namespace Gcp
 {
 
-class Document : GLib.Object
+public class Document : GLib.Object
 {
 	private Gedit.Document d_document;
 	private bool d_untitled;

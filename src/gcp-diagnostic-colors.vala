@@ -21,7 +21,7 @@ using Gtk;
 
 namespace Gcp
 {
-	class DiagnosticColors
+	public class DiagnosticColors
 	{
 		private Gdk.RGBA d_errorColor;
 		private Gdk.RGBA d_warningColor;

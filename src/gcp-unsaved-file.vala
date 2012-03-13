@@ -20,7 +20,7 @@
 namespace Gcp
 {
 
-struct UnsavedFile
+public struct UnsavedFile
 {
 	public string filename;
 	public string contents;

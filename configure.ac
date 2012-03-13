@@ -17,7 +17,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_LIBTOOL
 
-AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability subdir-objects])
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
 
@@ -50,44 +50,52 @@ AC_SUBST(GCP_CFLAGS)
 AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [])
 
 if test "x$LLVM_CONFIG" = "x"; then
-	AC_MSG_ERROR([could not find llvm-config])
+	AC_MSG_WARN([could not find llvm-config])
+else
+	dnl find out the libdir of llvm
+	LLVM_LIBS=$($LLVM_CONFIG --ldflags)
+	LLVM_CFLAGS=$($LLVM_CONFIG --cflags)
+
+	dnl ================================================================
+	dnl Find clang headers and lib
+	dnl ================================================================
+	OLDCFLAGS="$CFLAGS"
+	OLDLDFLAGS="$LDFLAGS"
+
+	CFLAGS="$OLDCFLAGS $LLVM_CFLAGS"
+	LDFLAGS="$OLDLDFLAGS $LLVM_LIBS"
+
+	AC_CHECK_LIB([clang],
+	             [clang_createIndex],
+	             [LLVM_LIBS="$LLVM_LIBS -lclang"
+	              clang_enabled="yes"],
+	             [AC_MSG_WARN([could not find clang library])
+	              clang_enabled="no"])
+
+	if test "x$clang_enabled" = "xyes"; then
+		AC_CHECK_HEADER([clang-c/Index.h],
+		                [],
+		                [AC_MSG_WARN([could not find clang header Index.h])
+		                 clang_enabled="no"])
+	fi
+
+	if test "x$clang_enabled" = "xyes"; then
+		LLVM_LIBS="$LLVM_LIBS -lclang"
+	fi
+
+	AC_SUBST(LLVM_CFLAGS)
+	AC_SUBST(LLVM_LIBS)
+
+	CFLAGS="$OLDCFLAGS"
+	LDFLAGS="$OLDLDFLAGS"
+
+	LLVM_VERSION=$($LLVM_CONFIG --version)
+	AC_DEFINE_UNQUOTED([LLVM_VERSION], "$LLVM_VERSION", [LLVM version])
+
+	AC_SUBST(LLVM_VERSION)
 fi
 
-dnl find out the libdir of llvm
-LLVM_LIBS=$($LLVM_CONFIG --ldflags)
-LLVM_CFLAGS=$($LLVM_CONFIG --cflags)
-
-dnl ================================================================
-dnl Find clang headers and lib
-dnl ================================================================
-
-OLDCFLAGS="$CFLAGS"
-OLDLDFLAGS="$LDFLAGS"
-
-CFLAGS="$OLDCFLAGS $LLVM_CFLAGS"
-LDFLAGS="$OLDLDFLAGS $LLVM_LIBS"
-
-AC_CHECK_LIB([clang],
-             [clang_createIndex],
-             [],
-             [AC_MSG_ERROR([could not find clang library])])
-
-AC_CHECK_HEADER([clang-c/Index.h],
-                [],
-                [AC_MSG_ERROR([could not find clang header Index.h])])
-
-LLVM_LIBS="$LLVM_LIBS -lclang"
-
-AC_SUBST(LLVM_CFLAGS)
-AC_SUBST(LLVM_LIBS)
-
-CFLAGS="$OLDCFLAGS"
-LDFLAGS="$OLDLDFLAGS"
-
-LLVM_VERSION=$($LLVM_CONFIG --version)
-AC_DEFINE_UNQUOTED([LLVM_VERSION], "$LLVM_VERSION", [LLVM version])
-
-AC_SUBST(LLVM_VERSION)
+AM_CONDITIONAL(CLANG_ENABLED, test "x$clang_enabled" = "xyes")
 
 AC_ARG_ENABLE([local],
               AS_HELP_STRING([--enable-local],[enable local install (in user directory)]),
@@ -98,6 +106,12 @@ dnl ================================================================
 dnl Find gedit
 dnl ================================================================
 PKG_CHECK_MODULES([GEDIT], [gedit >= 3.0])
+
+GEDIT_GIR_DIR="${datadir}/gedit/gir-1.0"
+AC_SUBST(GEDIT_GIR_DIR)
+
+GEDIT_API_VERSION=3.0
+AC_SUBST(GEDIT_API_VERSION)
 
 if test "x$enable_local" = "xyes"; then
 	geditlibdir="$HOME/.local/share"
@@ -110,19 +124,63 @@ fi
 GEDIT_PLUGIN_DIR="$geditlibdir/gedit/plugins"
 GEDIT_DATA_DIR="$geditdatadir/gedit/plugins"
 
+GCP_BACKENDS_LIBS_DIR="$GEDIT_PLUGIN_DIR/gcp/backends"
+GCP_BACKENDS_DATA_DIR="$GEDIT_DATA_DIR/gcp/backends"
+
+GCP_LIBS_DIR="$GEDIT_PLUGIN_DIR/gcp"
+AC_SUBST(GCP_LIBS_DIR)
+
+GCP_DATA_DIR="$GEDIT_DATA_DIR/gcp"
+AC_SUBST(GCP_DATA_DIR)
 
 AC_SUBST(GEDIT_PLUGIN_DIR)
 AC_SUBST(GEDIT_DATA_DIR)
 
+AC_SUBST(GCP_BACKENDS_LIBS_DIR)
+AC_SUBST(GCP_BACKENDS_DATA_DIR)
+
 AC_SUBST(GEDIT_CFLAGS)
 AC_SUBST(GEDIT_LIBS)
+
+GOBJECT_INTROSPECTION_CHECK([0.9.3])
+
+dnl adl_RECURSIVE_EVAL(VALUE, RESULT)
+dnl =================================
+dnl Interpolate the VALUE in loop until it doesn't change,
+dnl and set the result to $RESULT.
+dnl WARNING: It's easy to get an infinite loop with some unsane input.
+AC_DEFUN([adl_RECURSIVE_EVAL],
+[_lcl_receval="$1"
+$2=`(test "x$prefix" = xNONE && prefix="$ac_default_prefix"
+     test "x$exec_prefix" = xNONE && exec_prefix="${prefix}"
+     _lcl_receval_old=''
+     while test "[$]_lcl_receval_old" != "[$]_lcl_receval"; do
+       _lcl_receval_old="[$]_lcl_receval"
+       eval _lcl_receval="\"[$]_lcl_receval\""
+     done
+     echo "[$]_lcl_receval")`])
+
+adl_RECURSIVE_EVAL("$GCP_BACKENDS_LIBS_DIR", [GCP_BACKENDS_DIR_EX])
+adl_RECURSIVE_EVAL("$GCP_BACKENDS_DATA_DIR", [GCP_BACKENDS_DATA_DIR_EX])
+
+adl_RECURSIVE_EVAL("$GCP_LIBS_DIR", [GCP_LIBS_DIR_EX])
+adl_RECURSIVE_EVAL("$GCP_DATA_DIR", [GCP_DATA_DIR_EX])
+
+AC_DEFINE_UNQUOTED([GCP_BACKENDS_DIR], "$GCP_BACKENDS_DIR_EX", [Backends dir])
+AC_DEFINE_UNQUOTED([GCP_BACKENDS_DATA_DIR], "$GCP_BACKENDS_DATA_DIR_EX", [Backends data dir])
+
+AC_DEFINE_UNQUOTED([GCP_LIBS_DIR], "$GCP_LIBS_DIR_EX", [Library dir])
+AC_DEFINE_UNQUOTED([GCP_DATA_DIR], "$GCP_DATA_DIR_EX", [Data dir])
 
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
 data/gcp.plugin
 src/Makefile
-src/gcp-config.vala
+backends/Makefile
+backends/c/Makefile
+backends/c/gcp-c-config.vala
+backends/c/gcpbackendc.plugin
 vapi/Makefile
 ])
 
@@ -138,6 +196,8 @@ Configuration:
 	valac:			$VALAC
 	gedit plugin dir:       $GEDIT_PLUGIN_DIR
 	gedit data dir:         $GEDIT_DATA_DIR
-	llvm version:           $LLVM_VERSION
+
+	backends:
+		c:		$clang_enabled ($LLVM_VERSION)
 "
 

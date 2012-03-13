@@ -1,7 +1,7 @@
 namespace Gcp
 {
 
-interface SemanticValueSupport : Gcp.Document
+public interface SemanticValueSupport : Gcp.Document
 {
 	public delegate void WithSemanticValueCallback(SourceIndex<SemanticValue> diagnostics);
 

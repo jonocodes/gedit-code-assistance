@@ -324,7 +324,7 @@ class View : Object
 				d_buffer.cursor_moved.disconnect(on_cursor_semantics_moved);
 			}
 
-			d_backend.unregister(d_document);
+			d_backend.unregister_document(d_document);
 		}
 
 		d_backend = null;
@@ -413,7 +413,7 @@ class View : Object
 
 		if (d_view.buffer != null)
 		{
-			d_document = d_backend.register(d_view.buffer as Gedit.Document);
+			d_document = d_backend.register_document(d_view.buffer as Gedit.Document);
 
 			DiagnosticSupport? diag = d_document as DiagnosticSupport;
 

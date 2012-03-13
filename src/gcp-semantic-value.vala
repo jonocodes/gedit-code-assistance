@@ -1,7 +1,7 @@
 namespace Gcp
 {
 
-abstract class SemanticValue : Object, SourceRangeSupport
+public abstract class SemanticValue : Object, SourceRangeSupport
 {
 	public enum Kind
 	{

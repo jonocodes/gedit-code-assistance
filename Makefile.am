@@ -1,4 +1,4 @@
-SUBDIRS = data src vapi
+SUBDIRS = data src vapi backends
 
 ACLOCAL_AMFLAGS = -I m4
 

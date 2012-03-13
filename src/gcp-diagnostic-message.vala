@@ -4,7 +4,7 @@ using Gee;
 namespace Gcp
 {
 
-class DiagnosticMessage : EventBox
+public class DiagnosticMessage : EventBox
 {
 	private Diagnostic[] d_diagnostics;
 	private Box? d_vbox;

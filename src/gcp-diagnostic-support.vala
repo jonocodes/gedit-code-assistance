@@ -22,7 +22,7 @@ using Gee;
 namespace Gcp
 {
 
-interface DiagnosticSupport : Document
+public interface DiagnosticSupport : Document
 {
 	public abstract DiagnosticTags tags { get; set; }
 

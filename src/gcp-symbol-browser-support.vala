@@ -27,7 +27,7 @@ namespace Gcp
  * browsing.
  *
  */
-interface SymbolBrowserSupport : Document
+public interface SymbolBrowserSupport : Document
 {
 	/**
 	 * Get symbol browser

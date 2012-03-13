@@ -30,7 +30,7 @@ namespace Gcp
 	private TextTag? d_locationTag;
 	private TextTag? d_fixitTag;
 
-	class DiagnosticTags
+	public class DiagnosticTags
 	{
 		public DiagnosticTags(TextView view)
 		{

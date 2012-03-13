@@ -22,20 +22,14 @@ using Gee;
 namespace Gcp.C
 {
 
-class Backend : Gcp.Backend
+class Backend : Gcp.BackendImplementation
 {
-	private static string[] s_langs;
 	private CX.Index d_index;
 	private CompileArgs d_compileArgs;
 	private HashMap<File, LinkedList<Document>> d_documentMap;
 	private uint d_changedId;
 
-	static construct
-	{
-		s_langs = {"c", "cpp", "chdr", "objc"};
-	}
-
-	public Backend()
+	construct
 	{
 		d_index = new CX.Index(true, false);
 		d_compileArgs = new CompileArgs();
@@ -125,21 +119,13 @@ class Backend : Gcp.Backend
 		}
 	}
 
-	public override string[] supported_languages
-	{
-		get
-		{
-			return s_langs;
-		}
-	}
-
 	private UnsavedFile[] unsaved_files
 	{
 		owned get
 		{
 			ArrayList<Gcp.Document> docs = new ArrayList<Gcp.Document>();
 
-			foreach (Gcp.Document doc in documents)
+			foreach (Gcp.Document doc in this)
 			{
 				if (doc.location != null && doc.text != null)
 				{
@@ -172,7 +158,7 @@ class Backend : Gcp.Backend
 	{
 		UnsavedFile[] uf = unsaved_files;
 
-		foreach (Gcp.Document doc in documents)
+		foreach (Gcp.Document doc in this)
 		{
 			if (!doc.tainted)
 			{
@@ -230,5 +216,15 @@ class Backend : Gcp.Backend
 }
 
 }
+
+[ModuleInit]
+public void peas_register_types (TypeModule module)
+{
+	Peas.ObjectModule mod = module as Peas.ObjectModule;
+
+	mod.register_extension_type (typeof (Gcp.Backend),
+	                             typeof (Gcp.C.Backend));
+}
+
 
 /* vi:ex:ts=4 */

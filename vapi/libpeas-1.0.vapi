@@ -88,6 +88,7 @@ namespace Peas {
 		public unowned string get_name ();
 		public unowned string get_version ();
 		public unowned string get_website ();
+		public string? get_external_data (string key);
 		public bool has_dependency (string module_name);
 		public bool is_available () throws GLib.Error;
 		public bool is_builtin ();

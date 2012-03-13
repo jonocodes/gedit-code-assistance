@@ -93,14 +93,14 @@ public class ScrollbarMarker
 	{
 		StyleContext ctx = d_scrollbar.get_style_context();
 
-		int stepper_size = UtilsC.get_style_property_int(ctx,
+		int stepper_size = GcpUtilsC.get_style_property_int(ctx,
 		                                                 "stepper-size");
 
-		int stepper_spacing = UtilsC.get_style_property_int(ctx,
+		int stepper_spacing = GcpUtilsC.get_style_property_int(ctx,
 		                                                    "stepper-spacing");
 
-		d_border = UtilsC.get_style_property_int(ctx, "trough-border");
-		d_width = UtilsC.get_style_property_int(ctx, "slider-width");
+		d_border = GcpUtilsC.get_style_property_int(ctx, "trough-border");
+		d_width = GcpUtilsC.get_style_property_int(ctx, "slider-width");
 
 		d_spacing = stepper_size + stepper_spacing + 2;
 	}
