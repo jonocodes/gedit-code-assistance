@@ -17,6 +17,8 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_LIBTOOL
 
+AM_PATH_PYTHON
+
 AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
@@ -172,6 +174,27 @@ AC_DEFINE_UNQUOTED([GCP_BACKENDS_DATA_DIR], "$GCP_BACKENDS_DATA_DIR_EX", [Backen
 AC_DEFINE_UNQUOTED([GCP_LIBS_DIR], "$GCP_LIBS_DIR_EX", [Library dir])
 AC_DEFINE_UNQUOTED([GCP_DATA_DIR], "$GCP_DATA_DIR_EX", [Data dir])
 
+PYGOBJECT_REQUIRED=3.0.0
+
+AC_ARG_ENABLE([python],
+              AS_HELP_STRING([--enable-python[=@<:@no/auto/yes@:>@]],[Build with python support]),
+              [enable_python=$enableval],
+              [enable_python="auto"])
+
+if test "x$enable_python" = "xauto"; then
+	PKG_CHECK_EXISTS([pygobject-3.0 >= $PYGOBJECT_REQUIRED],
+	                 [enable_python=yes],[enable_python=no])
+fi
+
+if test "x$enable_python" = "xyes"; then
+	PKG_CHECK_MODULES(PYTHON, [pygobject-3.0 >= $PYGOBJECT_REQUIRED])
+
+	pyoverridesdir=`$PYTHON -c "import gi; print(gi._overridesdir)"`
+	AC_SUBST(pyoverridesdir)
+fi
+
+AM_CONDITIONAL(PYTHON_ENABLED, test x"$enable_python" = "xyes")
+
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
@@ -181,6 +204,9 @@ backends/Makefile
 backends/c/Makefile
 backends/c/gcp-c-config.vala
 backends/c/gcpbackendc.plugin
+backends/python/Makefile
+backends/python/gcpbackendpython/Makefile
+backends/python/gcpbackendpython.plugin
 vapi/Makefile
 ])
 
@@ -199,5 +225,6 @@ Configuration:
 
 	backends:
 		c:		$clang_enabled ($LLVM_VERSION)
+		python:		$enable_python
 "
 
