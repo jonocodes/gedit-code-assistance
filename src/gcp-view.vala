@@ -421,7 +421,7 @@ class View : Object
 			{
 				MarkAttributes attr;
 
-				diag.tags = d_tags;
+				diag.set_diagnostic_tags(d_tags);
 				diag.diagnostics_updated.connect(on_diagnostic_updated);
 
 				// Error
@@ -539,8 +539,10 @@ class View : Object
 		uint mid = d_scrollbarMarker.new_merge_id();
 
 		diagnostics.with_diagnostics((diagnostics) => {
-			foreach (Diagnostic d in diagnostics)
+			foreach (var obj in diagnostics)
 			{
+				Diagnostic d = (Diagnostic)obj;
+
 				Gdk.RGBA color = colors[d.severity];
 				Gdk.RGBA mix = mixed[d.severity];
 
@@ -829,7 +831,7 @@ class View : Object
 		SemanticValue? ret = null;
 
 		sem.with_semantics((semantics) => {
-			ret = semantics.find_inner_at(loc);
+			ret = (SemanticValue)semantics.find_inner_at(loc);
 		});
 
 		return ret;

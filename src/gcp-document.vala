@@ -24,7 +24,20 @@ namespace Gcp
 
 public class Document : GLib.Object
 {
+	public Gedit.Document document
+	{
+		get
+		{
+			return d_document;
+		}
+		construct
+		{
+			d_document = value;
+		}
+	}
+
 	private Gedit.Document d_document;
+
 	private bool d_untitled;
 	private bool d_modified;
 	private string? d_text;
@@ -59,10 +72,8 @@ public class Document : GLib.Object
 		}
 	}
 
-	public Document(Gedit.Document document)
+	construct
 	{
-		d_document = document;
-
 		d_untitled = d_document.is_untitled();
 		d_modified = false;
 		d_text = null;
@@ -157,7 +168,7 @@ public class Document : GLib.Object
 	{
 		DiagnosticSupport sup = this as DiagnosticSupport;
 
-		TextTag? tag = sup.tags[diagnostic.severity];
+		TextTag? tag = sup.get_diagnostic_tags()[diagnostic.severity];
 		string? category = mark_category_for_severity(diagnostic.severity);
 
 		d_document.apply_tag(tag, start, end);
@@ -226,7 +237,7 @@ public class Document : GLib.Object
 
 			mark_diagnostic_range(diagnostic, start, end);
 
-			d_document.apply_tag(sup.tags.location_tag, start, end);
+			d_document.apply_tag(sup.get_diagnostic_tags().location_tag, start, end);
 		}
 
 		for (uint i = 0; i < diagnostic.fixits.length; ++i)
@@ -235,7 +246,7 @@ public class Document : GLib.Object
 
 			if (source_range(r, out start, out end))
 			{
-				d_document.apply_tag(sup.tags.fixit_tag, start, end);
+				d_document.apply_tag(sup.get_diagnostic_tags().fixit_tag, start, end);
 			}
 		}
 	}
@@ -247,18 +258,20 @@ public class Document : GLib.Object
 
 		d_document.get_bounds(out start, out end);
 
-		d_document.remove_tag(diagnostic.tags.error_tag, start, end);
-		d_document.remove_tag(diagnostic.tags.warning_tag, start, end);
-		d_document.remove_tag(diagnostic.tags.info_tag, start, end);
-		d_document.remove_tag(diagnostic.tags.location_tag, start, end);
-		d_document.remove_tag(diagnostic.tags.fixit_tag, start, end);
+		var tags = diagnostic.get_diagnostic_tags();
+
+		d_document.remove_tag(tags.error_tag, start, end);
+		d_document.remove_tag(tags.warning_tag, start, end);
+		d_document.remove_tag(tags.info_tag, start, end);
+		d_document.remove_tag(tags.location_tag, start, end);
+		d_document.remove_tag(tags.fixit_tag, start, end);
 
 		remove_marks();
 
 		diagnostic.with_diagnostics((diagnostics) => {
-			foreach (Diagnostic diag in diagnostics)
+			foreach (var diag in diagnostics)
 			{
-				mark_diagnostic(diag);
+				mark_diagnostic((Diagnostic)diag);
 			}
 		});
 	}
@@ -371,14 +384,6 @@ public class Document : GLib.Object
 		get
 		{
 			return d_modified;
-		}
-	}
-
-	public Gedit.Document document
-	{
-		get
-		{
-			return d_document;
 		}
 	}
 

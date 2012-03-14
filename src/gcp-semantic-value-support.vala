@@ -1,11 +1,20 @@
 namespace Gcp
 {
 
+public delegate void WithSemanticValueCallback(SourceIndex diagnostics);
+
 public interface SemanticValueSupport : Gcp.Document
 {
-	public delegate void WithSemanticValueCallback(SourceIndex<SemanticValue> diagnostics);
+	public void with_semantics(WithSemanticValueCallback callback)
+	{
+		var sems = begin_semantics();
+		callback(sems);
 
-	public abstract void with_semantics(WithSemanticValueCallback callback);
+		end_semantics();
+	}
+
+	public abstract SourceIndex begin_semantics();
+	public abstract void end_semantics();
 
 	public signal void semantic_values_updated();
 }

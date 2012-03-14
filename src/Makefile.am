@@ -57,6 +57,7 @@ valapkgs = 				\
 	gedit-3.0 			\
 	libpeas-1.0 			\
 	gobject-introspection-1.0	\
+	posix				\
 	config
 
 INTROSPECTION_COMPILER_ARGS = --includedir $(GEDIT_GIR_DIR)

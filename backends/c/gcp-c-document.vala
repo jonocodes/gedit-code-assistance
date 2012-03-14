@@ -60,21 +60,42 @@ class Document : Gcp.Document,
 		}
 	}
 
-	public DiagnosticTags tags {get; set;}
+	private DiagnosticTags d_tags;
 
 	private TranslationUnit d_tu;
 	private SymbolBrowser d_symbols;
-	private SourceIndex<Diagnostic> d_diagnostics;
-	private SourceIndex<SemanticValue> d_semantics;
+
+	private SourceIndex d_diagnostics;
+	private Mutex d_diagnosticsLock;
+
+	private SourceIndex d_semantics;
+	private Mutex d_semanticsLock;
 
 	public Document(Gedit.Document document)
 	{
-		base(document);
+		Object(document: document);
+	}
 
+	public void set_diagnostic_tags(DiagnosticTags tags)
+	{
+		d_tags = tags;
+	}
+
+	public DiagnosticTags get_diagnostic_tags()
+	{
+		return d_tags;
+	}
+
+	construct
+	{
 		d_tu = new TranslationUnit();
 		d_symbols = new SymbolBrowser();
-		d_diagnostics = new SourceIndex<Diagnostic>();
-		d_semantics = new SourceIndex<SemanticValue>();
+
+		d_diagnostics = new SourceIndex();
+		d_diagnosticsLock = new Mutex();
+
+		d_semantics = new SourceIndex();
+		d_semanticsLock = new Mutex();
 
 		d_tu.update.connect(on_tu_update);
 	}
@@ -87,20 +108,26 @@ class Document : Gcp.Document,
 		}
 	}
 
-	public void with_diagnostics(DiagnosticSupport.WithDiagnosticsCallback callback)
+	public SourceIndex begin_diagnostics()
 	{
-		lock(d_diagnostics)
-		{
-			callback(d_diagnostics);
-		}
+		d_diagnosticsLock.lock();
+		return d_diagnostics;
 	}
 
-	public void with_semantics(SemanticValueSupport.WithSemanticValueCallback callback)
+	public void end_diagnostics()
 	{
-		lock(d_semantics)
-		{
-			callback(d_semantics);
-		}
+		d_diagnosticsLock.unlock();
+	}
+
+	public SourceIndex begin_semantics()
+	{
+		d_semanticsLock.lock();
+		return d_semantics;
+	}
+
+	public void end_semantics()
+	{
+		d_semanticsLock.unlock();
 	}
 
 	public TranslationUnit translation_unit
@@ -121,7 +148,7 @@ class Document : Gcp.Document,
 
 	private void update_diagnostics(CX.TranslationUnit tu)
 	{
-		SourceIndex<Diagnostic> ndiag = new SourceIndex<Diagnostic>();
+		SourceIndex ndiag = new SourceIndex();
 
 		Log.debug("New diagnostics: %u", tu.num_diagnostics);
 
@@ -188,15 +215,14 @@ class Document : Gcp.Document,
 			                         d.spelling.str()));
 		}
 
-		lock(d_diagnostics)
-		{
-			d_diagnostics = ndiag;
-		}
+		d_diagnosticsLock.lock();
+		d_diagnostics = ndiag;
+		d_diagnosticsLock.unlock();
 	}
 
 	private void update_semantics(CX.TranslationUnit tu)
 	{
-		SourceIndex<SemanticValue> sems = new SourceIndex<SemanticValue>();
+		SourceIndex sems = new SourceIndex();
 
 		HashMap<CursorWrapper, SemanticValue> semmap;
 
@@ -234,10 +260,9 @@ class Document : Gcp.Document,
 			}
 		});
 
-		lock(d_semantics)
-		{
-			d_semantics = sems;
-		}
+		d_semanticsLock.lock();
+		d_semantics = sems;
+		d_semanticsLock.unlock();
 	}
 
 	private void on_tu_update()

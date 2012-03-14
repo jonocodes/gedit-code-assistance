@@ -22,58 +22,74 @@ using Gee;
 namespace Gcp
 {
 
+public delegate void WithDiagnosticsCallback(SourceIndex diagnostics);
+
 public interface DiagnosticSupport : Document
 {
-	public abstract DiagnosticTags tags { get; set; }
-
 	public signal void diagnostics_updated();
 
-	public delegate void WithDiagnosticsCallback(SourceIndex<Diagnostic> diagnostics);
-
-	public abstract void with_diagnostics(WithDiagnosticsCallback callback);
+	public abstract SourceIndex begin_diagnostics();
+	public abstract void end_diagnostics();
 
 	public Diagnostic[] find_at(SourceLocation location)
 	{
-		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
+		Diagnostic[] ret = new Diagnostic[0];
 
-		with_diagnostics((diagnostics) => {
-			foreach (Diagnostic d in diagnostics.find_at(location))
-			{
-				ret.add(d);
-			}
-		});
+		var diagnostics = begin_diagnostics();
 
-		ret.sort_with_data((CompareDataFunc)sort_on_severity);
+		foreach (var d in diagnostics.find_at(location))
+		{
+			ret += (Diagnostic)d;
+		}
 
-		return ret.to_array();
+		end_diagnostics();
+
+		Posix.qsort(ret, ret.length, sizeof(Diagnostic), (Posix.compar_fn_t)sort_on_severity);
+
+		return ret;
 	}
 
-	private int sort_on_severity(Diagnostic? a, Diagnostic? b)
+	private int sort_on_severity(void *a, void *b)
 	{
-		if (a.severity == b.severity)
+		Diagnostic? da = (Diagnostic ?)a;
+		Diagnostic? db = (Diagnostic ?)b;
+
+		if (da.severity == db.severity)
 		{
 			return 0;
 		}
 
 		// Higer priorities last
-		return a.severity < b.severity ? -1 : 1;
+		return da.severity < db.severity ? -1 : 1;
 	}
 
 	public Diagnostic[] find_at_line(int line)
 	{
-		ArrayList<Diagnostic> ret = new ArrayList<Diagnostic>();
+		Diagnostic[] ret = new Diagnostic[0];
 
-		with_diagnostics((diagnostics) => {
-			foreach (Diagnostic d in diagnostics.find_at_line(line))
-			{
-				ret.add(d);
-			}
-		});
+		var diagnostics = begin_diagnostics();
 
-		ret.sort_with_data((CompareDataFunc)sort_on_severity);
+		foreach (var d in diagnostics.find_at_line(line))
+		{
+			ret += (Diagnostic)d;
+		}
 
-		return ret.to_array();
+		end_diagnostics();
+
+		Posix.qsort(ret, ret.length, sizeof(Diagnostic), (Posix.compar_fn_t)sort_on_severity);
+
+		return ret;
 	}
+
+	public void with_diagnostics(WithDiagnosticsCallback callback)
+	{
+		var d = begin_diagnostics();
+		callback(d);
+		end_diagnostics();
+	}
+
+	public abstract void set_diagnostic_tags(Gcp.DiagnosticTags tags);
+	public abstract Gcp.DiagnosticTags get_diagnostic_tags();
 }
 
 }

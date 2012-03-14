@@ -30,7 +30,7 @@ namespace Gcp
 	private TextTag? d_locationTag;
 	private TextTag? d_fixitTag;
 
-	public class DiagnosticTags
+	public class DiagnosticTags : Object
 	{
 		public DiagnosticTags(TextView view)
 		{
@@ -134,7 +134,7 @@ namespace Gcp
 			get { return d_fixitTag; }
 		}
 
-		public TextTag? get(Diagnostic.Severity severity)
+		public new TextTag? get(Diagnostic.Severity severity)
 		{
 			switch (severity)
 			{

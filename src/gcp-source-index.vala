@@ -22,7 +22,7 @@ using Gee;
 namespace Gcp
 {
 
-public class SourceIndex<T> : Object
+public class SourceIndex : Object
 {
 	public class Wrapper : Object
 	{
@@ -41,7 +41,7 @@ public class SourceIndex<T> : Object
 		}
 	}
 
-	public class Iterator<T> : Object
+	public class Iterator : Object
 	{
 		private SequenceIter<Wrapper> d_iter;
 		private bool d_first;
@@ -66,9 +66,9 @@ public class SourceIndex<T> : Object
 			return !d_iter.is_end();
 		}
 
-		public new T get()
+		public new Object get()
 		{
-			return (T)d_iter.get().obj;
+			return d_iter.get().obj;
 		}
 	}
 
@@ -82,7 +82,7 @@ public class SourceIndex<T> : Object
 
 	private Sequence<Wrapper> d_index;
 
-	public SourceIndex()
+	construct
 	{
 #if VALA_0_14
 		d_index = new Sequence<Wrapper>();
@@ -124,7 +124,7 @@ public class SourceIndex<T> : Object
 		});
 	}
 
-	public new T? get(int idx)
+	public new Object? get(int idx)
 	{
 		SequenceIter<Wrapper>? iter = d_index.get_iter_at_pos(idx);
 
@@ -133,7 +133,7 @@ public class SourceIndex<T> : Object
 			return null;
 		}
 
-		return (T)iter.get().obj;
+		return iter.get().obj;
 	}
 
 	public int length
@@ -202,19 +202,19 @@ public class SourceIndex<T> : Object
 		});
 	}
 
-	public T[] find_at_line(int line)
+	public Object[] find_at_line(int line)
 	{
 		return find_at_priv(new SourceLocation(null, line, 0), FindFlags.LINE_ONLY);
 	}
 
-	public T[] find_at(SourceLocation location)
+	public Object[] find_at(SourceLocation location)
 	{
 		return find_at_priv(location, FindFlags.NONE);
 	}
 
-	public T? find_inner_at(SourceLocation location)
+	public Object? find_inner_at(SourceLocation location)
 	{
-		T[] ret = find_at_priv(location, FindFlags.INNER_MOST);
+		Object[] ret = find_at_priv(location, FindFlags.INNER_MOST);
 
 		if (ret.length == 0)
 		{
@@ -236,13 +236,13 @@ public class SourceIndex<T> : Object
 		       (!lineonly && wrapper.range.contains_location(location));
 	}
 
-	private T[] find_at_priv(SourceLocation location,
+	private Object[] find_at_priv(SourceLocation location,
 	                         FindFlags flags)
 	{
-		LinkedList<T> ret = new LinkedList<T>();
+		LinkedList<Object> ret = new LinkedList<Object>();
 
 		SequenceIter<Wrapper> iter;
-		HashMap<T, bool> uniq = new HashMap<T, bool>(direct_hash, direct_equal);
+		HashMap<Object, bool> uniq = new HashMap<Object, bool>(direct_hash, direct_equal);
 
 		iter = d_index.search(new Wrapper(location, location.range, 0), compare_func);
 
@@ -254,7 +254,7 @@ public class SourceIndex<T> : Object
 
 				if (find_at_condition(iter.get(), location, flags))
 				{
-					return new T[] {iter.get().obj};
+					return new Object[] {iter.get().obj};
 				}
 				else if (!iter.get().encapsulated)
 				{
@@ -262,7 +262,7 @@ public class SourceIndex<T> : Object
 				}
 			}
 
-			return new T[] {};
+			return new Object[] {};
 		}
 
 		// Go back to find ranges that encapsulate the location
@@ -273,7 +273,7 @@ public class SourceIndex<T> : Object
 			while (find_at_condition(prev.get(), location, flags) ||
 			       prev.get().encapsulated)
 			{
-				T val = (T)prev.get().obj;
+				Object val = (Object)prev.get().obj;
 
 				if (find_at_condition(prev.get(), location, flags) &&
 				    !uniq.has_key(val))
@@ -296,7 +296,7 @@ public class SourceIndex<T> : Object
 		       (find_at_condition(iter.get(), location, flags) ||
 		        iter.get().encapsulated))
 		{
-			T val = (T)iter.get().obj;
+			Object val = (Object)iter.get().obj;
 
 			if (find_at_condition(iter.get(), location, flags) && !uniq.has_key(val))
 			{
@@ -323,9 +323,9 @@ public class SourceIndex<T> : Object
 		return ra.compare_to(rb);
 	}
 
-	public Iterator<T> iterator()
+	public Iterator iterator()
 	{
-		return new Iterator<T>(d_index.get_begin_iter());
+		return new Iterator(d_index.get_begin_iter());
 	}
 }
 
