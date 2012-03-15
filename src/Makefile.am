@@ -87,6 +87,6 @@ CLEANFILES = \
 
 MAINTAINERCLEANFILES = $(generated) $(gir_DATA) $(typelib_DATA)
 
-EXTRA_DIST = $(NOINSTHFILES) $(gir_DATA) $(typelib_DATA)
+EXTRA_DIST = gcp.h $(NOINSTHFILES) $(gir_DATA) $(typelib_DATA)
 
 -include $(top_srcdir)/git.mk
