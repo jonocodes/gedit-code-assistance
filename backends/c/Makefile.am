@@ -11,8 +11,6 @@ SOURCES = \
 	gcp-c-semantic-value.vala \
 	gcp-c-translator.vala
 
-BUILT_SOURCES = $(vala_sources:.vala=.c)
-
 libgcpbackendc_la_SOURCES = $(SOURCES)
 
 libgcpbackendc_la_CFLAGS = $(GCP_CFLAGS) $(LLVM_CFLAGS) $(GEDIT_CFLAGS) -I$(top_srcdir)/src -w
@@ -36,5 +34,8 @@ CLEANFILES = \
 
 install-data-hook:
 	rm -f $(GCP_BACKENDS_LIBS_DIR)/libgcpbackendc.la
+
+GITIGNOREFILES =			\
+	$(SOURCES:.vala=.c)
 
 -include $(top_srcdir)/git.mk

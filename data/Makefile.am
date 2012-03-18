@@ -7,3 +7,5 @@ gcpdata_DATA = gcp.css
 EXTRA_DIST = \
 	gcp.plugin \
 	gcp.css
+
+-include $(top_srcdir)/git.mk

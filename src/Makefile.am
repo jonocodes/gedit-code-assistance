@@ -38,10 +38,14 @@ SOURCES = \
 	$(vala_sources) \
 	gcp-utils-c.c
 
+BUILT_SOURCES = \
+	gcp.vapi \
+	gcp.h
+
 NOINSTHFILES = \
 	gcp-utils-c.h
 
-BUILT_SOURCES = $(vala_sources:.vala=.c)
+EXTRA_DIST = $(NOINSTHFILES)
 
 libgcp_la_SOURCES = $(SOURCES)
 
@@ -65,28 +69,36 @@ INTROSPECTION_COMPILER_ARGS = --includedir $(GEDIT_GIR_DIR)
 -include $(INTROSPECTION_MAKEFILE)
 
 girdir = $(GCP_DATA_DIR)/gir-1.0
-gir_DATA = Gcp-3.0.gir
+dist_gir_DATA = Gcp-3.0.gir
 
 typelibdir = $(GCP_LIBS_DIR)/girepository-1.0
-typelib_DATA = $(gir_DATA:.gir=.typelib)
+dist_typelib_DATA = $(dist_gir_DATA:.gir=.typelib)
 
-headerdir = $(prefix)/include/gedit-$(GEDIT_API_VERSION)/gcp
-header_DATA = gcp.h
+vapidir = $(datadir)/vala/vapi
+dist_vapi_DATA = 	\
+	gcp.vapi	\
+	gcp.deps
+
+CLEANFILES = 				\
+	libgcp_la_vala.stamp
+
+MAINTAINERCLEANFILES = 		\
+	$(dist_gir_DATA)	\
+	$(dist_typelib_DATA)	\
+	$(BUILT_SOURCES)
+
+gcphdir = $(prefix)/include/gedit-$(GEDIT_API_VERSION)/gcp
+gcph_HEADERS = gcp.h
 
 VALAFLAGS = \
 	--vapidir $(top_srcdir)/vapi \
-	--header gcp.h \
+	--H gcp.h \
 	--vapi gcp.vapi \
 	--library libgcp \
 	--gir Gcp-3.0.gir \
 	$(foreach pkg,$(valapkgs),--pkg $(pkg))
 
-CLEANFILES = \
-	libgcp_la_vala.stamp \
-	$(BUILT_SOURCES)
-
-MAINTAINERCLEANFILES = $(generated) $(gir_DATA) $(typelib_DATA)
-
-EXTRA_DIST = gcp.h $(NOINSTHFILES) $(gir_DATA) $(typelib_DATA)
+GITIGNOREFILES =			\
+	$(vala_sources:.vala=.c)
 
 -include $(top_srcdir)/git.mk
