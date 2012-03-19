@@ -92,7 +92,7 @@ gcph_HEADERS = gcp.h
 
 VALAFLAGS = \
 	--vapidir $(top_srcdir)/vapi \
-	--H gcp.h \
+	--header gcp.h \
 	--vapi gcp.vapi \
 	--library libgcp \
 	--gir Gcp-3.0.gir \
