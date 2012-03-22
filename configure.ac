@@ -195,6 +195,18 @@ fi
 
 AM_CONDITIONAL(PYTHON_ENABLED, test x"$enable_python" = "xyes")
 
+AC_ARG_ENABLE([xml],
+              AS_HELP_STRING([--enable-xml[=@<:@no/auto/yes@:>@]],[Build with XML support]),
+              [enable_xml=$enableval],
+              [enable_xml="auto"])
+
+if test "x$enable_xml" = "xauto"; then
+	PKG_CHECK_EXISTS([pygobject-3.0 >= $PYGOBJECT_REQUIRED],
+	                 [enable_xml=yes],[enable_xml=no])
+fi
+
+AM_CONDITIONAL(XML_ENABLED, test x"$enable_xml" = "xyes")
+
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
@@ -207,6 +219,9 @@ backends/c/gcpbackendc.plugin
 backends/python/Makefile
 backends/python/gcpbackendpython/Makefile
 backends/python/gcpbackendpython.plugin
+backends/xml/Makefile
+backends/xml/gcpbackendxml/Makefile
+backends/xml/gcpbackendxml.plugin
 vapi/Makefile
 ])
 
@@ -226,5 +241,6 @@ Configuration:
 	backends:
 		c:		$clang_enabled ($LLVM_VERSION)
 		python:		$enable_python
+		xml:		$enable_xml
 "
 
