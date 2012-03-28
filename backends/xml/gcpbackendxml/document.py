@@ -19,6 +19,7 @@ from gi.repository import GObject, Gcp, GLib, Gio
 
 from lxml import etree
 import threading
+import os
 
 class ParseThread(threading.Thread):
     def __init__(self, doc, finishCallBack):
@@ -28,14 +29,34 @@ class ParseThread(threading.Thread):
 
         doc = doc.props.document
 
-        if doc.get_location():
-            self.source_file = doc.get_location().get_path()
-
-        if not self.source_file:
-            self.source_file = '<unknown>'
+        self.isRelaxNgSchema = False
+        self.relaxNgRef = None
 
         bounds = doc.get_bounds()
         self.source_contents = bounds[0].get_text(bounds[1])
+
+
+        if doc.get_location():
+
+            self.source_file = doc.get_location().get_path()
+            
+            # determine if it is a RNG schema using the filename or the namespace
+
+            if (os.path.splitext(self.source_file)[1].lower() == '.rng'):
+                self.isRelaxNgSchema = True
+
+            else:
+                try:
+                    xml = etree.fromstring(self.source_contents)
+
+                    if xml.nsmap[None] == 'http://relaxng.org/ns/structure/1.0':
+                        self.isRelaxNgSchema = True
+
+                except Exception as e:
+                    pass # since these errors are handled later
+
+        if not self.source_file:
+            self.source_file = '<unknown>'
 
         self.clock = threading.Lock()
         self.cancelled = False
@@ -57,19 +78,90 @@ class ParseThread(threading.Thread):
     def finish_in_idle(self):
         self.finishCallBack(self.parse_errors)
 
+    def parseRelaxNgRef(self, text):
+
+        refLine = text.split(':')
+
+        if refLine[0].strip().lower() == 'relaxng' and len(refLine) == 2:
+            ref = os.path.join( os.path.dirname(self.source_file), refLine[1].strip())
+            if os.path.exists(ref):
+                return ref
+
+        return None
+
+    def addError(self, prefix, error):
+
+        if type(error) is etree._LogEntry:
+
+            line = 1
+            column = 1
+
+            # specially handle the case where line is 0 since docs start at line 1
+            if error.line != 0:
+                line = error.line
+            if error.column != 0:
+                column = error.column
+
+            self.parse_errors.append((line, column, prefix + ": " + error.message))
+                
+        else:   # it is probably a string or an Exception
+            self.parse_errors.append((1, 1, prefix + ": " + str(error)))
+
     def run(self):
 
+        # parse the XML for errors
         try:
             etree.clear_error_log()
-            parser = etree.XMLParser()
-            xml = etree.fromstring(self.source_contents, parser)
+            xml = etree.fromstring(self.source_contents)
+
+            # parse comments for a reference to a RelaxNg schema
+            if self.source_file:
+
+                for comment in xml.itersiblings(tag=etree.Comment, preceding=True):
+                    self.relaxNgRef = self.parseRelaxNgRef(comment.text)
+
+                if self.relaxNgRef is None:
+                    for comment in xml.itersiblings(tag=etree.Comment, preceding=False):
+                        self.relaxNgRef = self.parseRelaxNgRef(comment.text)
+
+            # validate doc against RelaxNg schema
+            if self.relaxNgRef is not None:
+                try:
+                    relaxng_content = etree.parse(self.relaxNgRef)
+                    rng = etree.RelaxNG(relaxng_content)
+
+                    try:
+                        rng.assertValid(xml)
+
+                    except etree.DocumentInvalid as e:
+                        for error in rng.error_log:
+                            self.addError("RelaxNG validation error", error)
+
+                    except Exception as e:
+                        self.addError("RelaxNG validation error", e)
+
+                except Exception:
+                    self.addError("RelaxNG error", "Unable to parse schema file " + str(self.relaxNgRef))
+
+            # if it is RelaxNG, parse for RNG errors
+            if self.isRelaxNgSchema:
+
+                try:
+                    rng = etree.RelaxNG(xml)
+                    
+                except etree.RelaxNGError as e:
+                    for error in e.error_log:
+                        self.addError("RelaxNG parsing error", error)
+                   
+                except Exception as e:
+                    self.addError("RelaxNG parsing error", e)
 
         except etree.XMLSyntaxError as e:
             for error in e.error_log:
-                self.parse_errors.append((error.line, error.column, error.message))
+                self.addError("XML parsing error", error)
 
         except Exception as e:
-            self.parse_errors.append((0, 0, "unknown error " + str(e)))
+            self.addError("XML parsing error", e)
 
         self.clock.acquire()
 
