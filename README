@@ -21,8 +21,10 @@ make install
 To install the plugin locally, use the --enable-local configure flag. This will
 install the plugin in $HOME/.local/share/gedit/plugins
 
-3) If you want your XML to validate against a RelaxNG schema, put a comment at
-   the top of the XML file like so:
+3) If you want your XML to validate against a schema, put a comment at the top
+   of your XML file like so:
 
-<!-- relaxng: myschema.rng -->
+    <!-- schema: myschema.rng -->
 
+The reference can be a local RelaxNG or XML Schema Document file. This plugin 
+does not validate against more then one schema at a time.

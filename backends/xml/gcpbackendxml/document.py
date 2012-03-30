@@ -18,10 +18,11 @@
 from gi.repository import GObject, Gcp, GLib, Gio
 
 from lxml import etree
-import threading
-import os
+import threading, os, sys, traceback
+
 
 class ParseThread(threading.Thread):
+
     def __init__(self, doc, finishCallBack):
         threading.Thread.__init__(self)
 
@@ -29,32 +30,12 @@ class ParseThread(threading.Thread):
 
         doc = doc.props.document
 
-        self.isRelaxNgSchema = False
-        self.relaxNgRef = None
-
         bounds = doc.get_bounds()
         self.source_contents = bounds[0].get_text(bounds[1])
 
-
         if doc.get_location():
-
             self.source_file = doc.get_location().get_path()
             
-            # determine if it is a RNG schema using the filename or the namespace
-
-            if (os.path.splitext(self.source_file)[1].lower() == '.rng'):
-                self.isRelaxNgSchema = True
-
-            else:
-                try:
-                    xml = etree.fromstring(self.source_contents)
-
-                    if xml.nsmap[None] == 'http://relaxng.org/ns/structure/1.0':
-                        self.isRelaxNgSchema = True
-
-                except Exception as e:
-                    pass # since these errors are handled later
-
         if not self.source_file:
             self.source_file = '<unknown>'
 
@@ -78,23 +59,49 @@ class ParseThread(threading.Thread):
     def finish_in_idle(self):
         self.finishCallBack(self.parse_errors)
 
-    def parseRelaxNgRef(self, text):
+    def getSchema(self, location, schemaText=None):
 
-        refLine = text.split(':')
+        schemaType = None
+        schemaXml = None
 
-        if refLine[0].strip().lower() == 'relaxng' and len(refLine) == 2:
-            ref = os.path.join( os.path.dirname(self.source_file), refLine[1].strip())
-            if os.path.exists(ref):
-                return ref
+        # get the schema text if needed
+        if schemaText == None:
 
-        return None
+            if location.find('http://') == 0 or location.find('http://') == 0:
+                raise Exception("Schema reference must be a local file")
+                # TODO: handle location when it is a URL
 
-    def addError(self, prefix, error):
+            # now we assume it is a local file reference
+            if not os.path.isabs(location):
+                location = os.path.join( os.path.dirname(self.source_file), location)
+
+            with file(location) as f:
+                schemaText = f.read()
+
+        # parse the schema XML, exception to be caught outside this function
+        schemaXml = etree.fromstring(schemaText)
+
+        # first check the namespace
+        if None in schemaXml.nsmap and schemaXml.nsmap[None] == 'http://relaxng.org/ns/structure/1.0':
+            schemaType = "RelaxNG"
+        elif 'xs' in schemaXml.nsmap and schemaXml.nsmap['xs'] == "http://www.w3.org/2001/XMLSchema":
+            schemaType = "XSD"
+        else:
+        # then check the file extension
+            extension = os.path.splitext(self.source_file)[1].lower()
+
+            if extension == '.rng':
+                schemaType = "RelaxNG"
+            elif extension == '.xsd':
+                schemaType = "XSD"
+            # TODO: add .rnc support
+            # http://infohost.nmt.edu/tcc/help/pubs/pylxml/web/val-mod-RelaxValidator-trang.html
+
+        return {'type':schemaType, 'xml':schemaXml}
+
+    def addError(self, prefix, error, line = 1, column = 1):
 
         if type(error) is etree._LogEntry:
-
-            line = 1
-            column = 1
 
             # specially handle the case where line is 0 since docs start at line 1
             if error.line != 0:
@@ -103,58 +110,89 @@ class ParseThread(threading.Thread):
                 column = error.column
 
             self.parse_errors.append((line, column, prefix + ": " + error.message))
-                
+            
         else:   # it is probably a string or an Exception
-            self.parse_errors.append((1, 1, prefix + ": " + str(error)))
+            self.parse_errors.append((line, column, prefix + ": " + str(error)))
 
     def run(self):
 
-        # parse the XML for errors
+        docType = 'XML'
+
+        etree.clear_error_log()
+
         try:
-            etree.clear_error_log()
-            xml = etree.fromstring(self.source_contents)
 
-            # parse comments for a reference to a RelaxNg schema
-            if self.source_file:
+            # parse the XML for errors
 
-                for comment in xml.itersiblings(tag=etree.Comment, preceding=True):
-                    self.relaxNgRef = self.parseRelaxNgRef(comment.text)
+            if self.source_file != '<unknown>':
 
-                if self.relaxNgRef is None:
-                    for comment in xml.itersiblings(tag=etree.Comment, preceding=False):
-                        self.relaxNgRef = self.parseRelaxNgRef(comment.text)
+                docSchema = self.getSchema(self.source_file, self.source_contents)
+                xml = docSchema['xml']
 
-            # validate doc against RelaxNg schema
-            if self.relaxNgRef is not None:
-                try:
-                    relaxng_content = etree.parse(self.relaxNgRef)
-                    rng = etree.RelaxNG(relaxng_content)
+                if docSchema['type'] != None:
+                    docType = docSchema['type']
 
-                    try:
-                        rng.assertValid(xml)
+            else:
+                xml = etree.fromstring(self.source_contents)
 
-                    except etree.DocumentInvalid as e:
-                        for error in rng.error_log:
-                            self.addError("RelaxNG validation error", error)
+            # if the doc is a schema itself, parse it for schema errors
 
-                    except Exception as e:
-                        self.addError("RelaxNG validation error", e)
+            try:
+                if docType == "XSD":
+                    etree.XMLSchema(xml)
+                elif docType == "RelaxNG":
+                    etree.RelaxNG(xml)
 
-                except Exception:
-                    self.addError("RelaxNG error", "Unable to parse schema file " + str(self.relaxNgRef))
+            except (etree.RelaxNGError, etree.XMLSchemaParseError) as e:
+                for error in e.error_log:
+                    self.addError(docType + " parsing error", error)
+               
+            except Exception as e:
+                self.addError(docType + " parsing error", e)
 
-            # if it is RelaxNG, parse for RNG errors
-            if self.isRelaxNgSchema:
 
-                try:
-                    rng = etree.RelaxNG(xml)
+            # parse XML comments in document for a reference to a schema
+
+            for pre in (True, False):
+
+                for comment in xml.itersiblings(tag=etree.Comment, preceding=pre):
                     
-                except etree.RelaxNGError as e:
-                    for error in e.error_log:
-                        self.addError("RelaxNG parsing error", error)
-                   
-                except Exception as e:
-                    self.addError("RelaxNG parsing error", e)
+                    refLine = comment.text.split(':', 1)
+
+                    if refLine[0].strip().lower() == 'schema' and len(refLine) == 2:
+
+                        try:
+
+                            schemaLocation = refLine[1].strip()
+                            schemaRef = self.getSchema(schemaLocation)
+
+                            if schemaRef != None and schemaRef['type'] != None:
+
+                                try:
+                                    if schemaRef['type'] == "XSD":
+                                        schema = etree.XMLSchema(schemaRef['xml'])
+                                    elif schemaRef['type'] == "RelaxNG":
+                                        schema = etree.RelaxNG(schemaRef['xml'])
+
+                                    schema.assertValid(xml)
+
+                                except (etree.DocumentInvalid, etree.RelaxNGValidateError, etree.XMLSchemaValidateError):
+                                    for error in schema.error_log:
+                                        self.addError(schemaRef['type'] + " validation error", error)
+
+                                except (etree.RelaxNGError, etree.XMLSchemaParseError):
+                                    self.addError(schemaRef['type'] + " error", "Schema is invalid " + schemaLocation, comment.sourceline)
+
+                                except Exception as e:
+                                    self.addError(schemaRef['type'] + " error", e)
+
+                        except etree.XMLSyntaxError as e:
+                            self.addError("Schema error", "Unable to parse schema XML " + schemaLocation, comment.sourceline)
+
+                        except Exception as e:
+                            self.addError("Schema error", e, comment.sourceline)
+
+        # handle XML parse errors
 
         except etree.XMLSyntaxError as e:
             for error in e.error_log:
@@ -162,6 +200,7 @@ class ParseThread(threading.Thread):
 
         except Exception as e:
             self.addError("XML parsing error", e)
+            traceback.print_exc(file=sys.stdout)
 
         self.clock.acquire()
 
