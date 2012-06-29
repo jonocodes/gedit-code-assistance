@@ -114,6 +114,29 @@ class ParseThread(threading.Thread):
         else:   # it is probably a string or an Exception
             self.parse_errors.append((line, column, prefix + ": " + str(error)))
 
+
+    def lookForSchema(self, xml):
+        
+        """ This function looks through the comment tags for a schema reference
+            it returns on the first reference it finds in no particular order """
+            
+        for pre in (True, False):
+
+            for comment in xml.itersiblings(tag=etree.Comment, preceding=pre):
+                
+                refLine = comment.text.split(':', 1)
+
+                if refLine[0].strip().lower() == 'schema' and len(refLine) == 2:
+
+                    schemaLocation = refLine[1].strip()
+                    schemaRef = self.getSchema(schemaLocation)
+
+                    if schemaRef != None and schemaRef['type'] != None:
+                        return (schemaRef, schemaLocation, comment.sourceline)
+
+        return (None, None, None)
+
+        
     def run(self):
 
         docType = 'XML'
@@ -153,44 +176,36 @@ class ParseThread(threading.Thread):
 
             # parse XML comments in document for a reference to a schema
 
-            for pre in (True, False):
+            try:
 
-                for comment in xml.itersiblings(tag=etree.Comment, preceding=pre):
-                    
-                    refLine = comment.text.split(':', 1)
+                (schemaRef, schemaLocation, commentLine) = self.lookForSchema(xml)
+                
+                if schemaRef != None:
 
-                    if refLine[0].strip().lower() == 'schema' and len(refLine) == 2:
+                    try:
+                        if schemaRef['type'] == "XSD":
+                            schema = etree.XMLSchema(schemaRef['xml'])
+                        elif schemaRef['type'] == "RelaxNG":
+                            schema = etree.RelaxNG(schemaRef['xml'])
 
-                        try:
+                        schema.assertValid(xml)
 
-                            schemaLocation = refLine[1].strip()
-                            schemaRef = self.getSchema(schemaLocation)
+                    except (etree.DocumentInvalid, etree.RelaxNGValidateError, etree.XMLSchemaValidateError):
+                        for error in schema.error_log:
+                            self.addError(schemaRef['type'] + " validation error", error)
 
-                            if schemaRef != None and schemaRef['type'] != None:
+                    except (etree.RelaxNGError, etree.XMLSchemaParseError):
+                        self.addError(schemaRef['type'] + " error", "Schema is invalid " + schemaLocation, commentLine)
 
-                                try:
-                                    if schemaRef['type'] == "XSD":
-                                        schema = etree.XMLSchema(schemaRef['xml'])
-                                    elif schemaRef['type'] == "RelaxNG":
-                                        schema = etree.RelaxNG(schemaRef['xml'])
+                    except Exception as e:
+                        self.addError(schemaRef['type'] + " error", e)
 
-                                    schema.assertValid(xml)
+            except etree.XMLSyntaxError as e:
+                self.addError("Schema error", "Unable to parse schema XML " + schemaLocation, commentLine)
 
-                                except (etree.DocumentInvalid, etree.RelaxNGValidateError, etree.XMLSchemaValidateError):
-                                    for error in schema.error_log:
-                                        self.addError(schemaRef['type'] + " validation error", error)
+            except Exception as e:
+                self.addError("Schema error", e, commentLine)
 
-                                except (etree.RelaxNGError, etree.XMLSchemaParseError):
-                                    self.addError(schemaRef['type'] + " error", "Schema is invalid " + schemaLocation, comment.sourceline)
-
-                                except Exception as e:
-                                    self.addError(schemaRef['type'] + " error", e)
-
-                        except etree.XMLSyntaxError as e:
-                            self.addError("Schema error", "Unable to parse schema XML " + schemaLocation, comment.sourceline)
-
-                        except Exception as e:
-                            self.addError("Schema error", e, comment.sourceline)
 
         # handle XML parse errors
 
@@ -198,9 +213,10 @@ class ParseThread(threading.Thread):
             for error in e.error_log:
                 self.addError("XML parsing error", error)
 
-        except Exception as e:
-            self.addError("XML parsing error", e)
-            traceback.print_exc(file=sys.stdout)
+        # ignore other exceptions
+        
+        except:
+            pass
 
         self.clock.acquire()
 
